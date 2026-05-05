@@ -71,8 +71,10 @@ function render(){
   let message = '';
 
   if(code === 'EL'){
-    const today = new Date();
-    const dayOfMonth else if(days >= 10) {
+    if(days >= MAX_EL_DAYS) {
+      color = 'red';
+      message = 'Maximum bereikt';
+    } else if(days >= 10) {
       color = 'orange';
       message = `Nog ${(MAX_EL_DAYS - days).toFixed(1)} dagen beschikbaar`;
     } else {
