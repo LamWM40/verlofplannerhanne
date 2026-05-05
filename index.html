@@ -3,82 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verlof Planner</title>
-  <link rel="manifest" href="https://progressier.app/ZQMaV8scWjUel7pYaVda/progressier.json"/>
-  <script defer src="https://progressier.app/ZQMaV8scWjUel7pYaVda/script.js"></script>
+  <title>Verlof Planner PWA</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
 
   <style>
-    body { font-family: Arial; margin: 10px; background:#eef2f7 }
+    body { font-family: Arial; margin: 20px; background:#f4f4f4 }
     h1 { text-align:center }
-    .grid { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px }
-    .card { background:white; padding:15px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.1)}
-    input, select { padding:10px; margin:5px 0; width:100%; border-radius:8px; border:1px solid #ccc }
-    button { padding:10px; width:100%; background:#007bff; color:white; border:none; border-radius:8px; font-weight:bold }
-
-    .bar-bg { width:100%; height:18px; background:#ddd; border-radius:10px; overflow:hidden; margin-top:10px }
-    .bar-fill { height:100%; background:#28a745; width:0%; transition:0.3s }
+    .card { background:white; padding:15px; margin-bottom:15px; border-radius:10px }
+    input, select { padding:8px; margin:5px 0; width:100% }
+    button { padding:10px; width:100%; background:#007bff; color:white; border:none; border-radius:5px }
   </style>
 </head>
 <body>
 
-<h1>📅 Verlof Planner</h1>
+<h1>Verlof Planner</h1>
 
-<div class="grid">
+<div class="card">
+  <h3>Uren ingeven</h3>
+  <select id="code">
+    <option value="EL">EL</option>
+    <option value="R">R</option>
+    <option value="F">F</option>
+    <option value="C">C</option>
+    <option value="S">S</option>
+    <option value="B">B</option>
+  </select>
+  <input type="number" id="uren" placeholder="Aantal uren">
+  <button onclick="toevoegen()">Toevoegen</button>
+</div>
 
-  <!-- Kolom 1 -->
-  <div class="card">
-    <h3>Codes</h3>
-    <p>EL</p>
-    <p>R</p>
-    <p>F</p>
-    <p>C</p>
-    <p>S</p>
-    <p>B</p>
-  </div>
-
-  <!-- Kolom 2 -->
-  <div class="card">
-    <h3>Overzicht</h3>
-    <div id="overzicht"></div>
-
-    <hr>
-    <b id="dagen"></b>
-
-    <hr>
-    <b>Resterend verlof</b>
-    <p id="resterend"></p>
-
-    <div class="bar-bg">
-      <div class="bar-fill" id="bar"></div>
-    </div>
-  </div>
-
-  <!-- Kolom 3 -->
-  <div class="card">
-    <h3>Uren ingeven</h3>
-    <select id="code">
-      <option value="EL">EL</option>
-      <option value="R">R</option>
-      <option value="F">F</option>
-      <option value="C">C</option>
-      <option value="S">S</option>
-      <option value="B">B</option>
-    </select>
-    <input type="number" id="uren" placeholder="Aantal uren">
-    <input type="number" id="urenPerDag" placeholder="Uren per werkdag (bv 8)">
-    <button onclick="toevoegen()">Toevoegen</button>
-  </div>
-
+<div class="card">
+  <h3>Overzicht</h3>
+  <div id="overzicht"></div>
 </div>
 
 <script>
-let data = JSON.parse(localStorage.getItem('data')) || {};
-
-// vaste verlofwaarden
-const allowance = {
-  S: 15,
-  B: 120
-};
+let data = JSON.parse(localStorage.getItem('verlof')) || {};
 
 function toevoegen(){
   let code = document.getElementById('code').value;
@@ -87,40 +49,69 @@ function toevoegen(){
   if(!data[code]) data[code] = 0;
   data[code] += uren;
 
-  localStorage.setItem('data', JSON.stringify(data));
+  localStorage.setItem('verlof', JSON.stringify(data));
   toon();
 }
 
 function toon(){
   let html = '';
-  let totaalUren = 0;
-  let urenPerDag = parseFloat(document.getElementById('urenPerDag').value) || 8;
-
-  let codes = ['EL','R','F','C','S','B'];
-
-  codes.forEach(c => {
-    let val = data[c] || 0;
-    html += `<p>${c}: ${val} uur</p>`;
-    totaalUren += val;
-  });
-
+  for(let key in data){
+    html += `<p>${key}: ${data[key]} uur</p>`;
+  }
   document.getElementById('overzicht').innerHTML = html;
-
-  let dagen = totaalUren / urenPerDag;
-  document.getElementById('dagen').innerText = `Totaal: ${dagen.toFixed(2)} werkdagen`;
-
-  // Resterend verlof
-  let used = (data['S'] || 0) + (data['B'] || 0);
-  let totalAllowance = allowance.S + allowance.B;
-  let remaining = totalAllowance - used;
-  let percentUsed = (used / totalAllowance) * 100;
-
-  document.getElementById('resterend').innerText = `${remaining.toFixed(2)} uur over`;
-  document.getElementById('bar').style.width = percentUsed + "%";
 }
 
 toon();
+
+// Service worker registreren
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
 </script>
 
 </body>
 </html>
+
+
+<!-- ============================ -->
+<!-- manifest.json (apart bestand) -->
+<!-- ============================ -->
+{
+  "name": "Verlof Planner",
+  "short_name": "Planner",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
+
+
+<!-- ============================ -->
+<!-- sw.js (apart bestand) -->
+<!-- ============================ -->
+const cacheName = 'verlof-app-v1';
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(cacheName).then(cache => {
+      return cache.addAll([
+        './',
+      ]);
+    })
+  );
+});
+
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(response => {
+      return response || fetch(e.request);
+    })
+  );
+});
