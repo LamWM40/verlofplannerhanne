@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="nl">
-<head><link rel="manifest" href="https://progressier.app/EnC6ykyRpqbM3zF2uEl1/progressier.json"/>
-<script defer src="https://progressier.app/EnC6ykyRpqbM3zF2uEl1/script.js"></script>
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mijn Verlof Planner</title>
