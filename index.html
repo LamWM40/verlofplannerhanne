@@ -19,7 +19,7 @@ button { margin-top:5px; padding:5px; width:100%; }
 </head>
 <body>
 <header>
-<h2>Verlofplanner</h2>
+<h2 style="color:blue;">Verlofplanner 2</h2>
 </header>
 <div class="container" id="app"></div>
 <script>
@@ -71,17 +71,24 @@ function render(){
   let message = '';
 
   if(code === 'EL'){
-    if(days >= MAX_EL_DAYS) {
-      color = 'red';
-      message = 'Maximum bereikt';
-    } else if(days >= 10) {
-      color = 'orange';
-      message = `Nog ${(MAX_EL_DAYS - days).toFixed(1)} dagen beschikbaar`;
-    } else {
-      color = 'green';
-      message = `Nog ${(MAX_EL_DAYS - days).toFixed(1)} dagen beschikbaar`;
-    }
+  const remaining = Math.max(0, MAX_EL_DAYS - Math.floor(days));
+
+  // Kleuren aanpassen volgens jouw logica
+  if(days >= 15){
+    color = 'red';
+  } else if(days >= 10){
+    color = 'orange';
+  } else {
+    color = 'green';
   }
+
+  // Aftellen in hele dagen (15 → 1)
+  if(remaining <= 0){
+    message = 'Geen dagen meer beschikbaar';
+  } else {
+    message = `Nog ${remaining} dagen beschikbaar`;
+  }
+}
 
   const percent = code === 'EL'
     ? Math.min(100, (days / MAX_EL_DAYS) * 100)
