@@ -1,117 +1,137 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verlof Planner PWA</title>
-
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json">
-
-  <style>
-    body { font-family: Arial; margin: 20px; background:#f4f4f4 }
-    h1 { text-align:center }
-    .card { background:white; padding:15px; margin-bottom:15px; border-radius:10px }
-    input, select { padding:8px; margin:5px 0; width:100% }
-    button { padding:10px; width:100%; background:#007bff; color:white; border:none; border-radius:5px }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verlofplanner</title>
+<link rel="manifest" href="manifest.json">
+<style>
+body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
+header { background:#333; color:#fff; padding:10px; text-align:center; }
+.container { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; padding:10px; }
+.card { background:#fff; padding:10px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1);} 
+input { width:100%; padding:5px; }
+.progress { height:10px; background:#ddd; border-radius:5px; margin-top:5px; }
+.bar { height:10px; background:green; border-radius:5px; }
+.deadline { font-size:12px; margin-top:5px; }
+button { margin-top:5px; padding:5px; width:100%; }
+</style>
 </head>
 <body>
-
-<h1>Verlof Planner</h1>
-
-<div class="card">
-  <h3>Uren ingeven</h3>
-  <select id="code">
-    <option value="EL">EL</option>
-    <option value="R">R</option>
-    <option value="F">F</option>
-    <option value="C">C</option>
-    <option value="S">S</option>
-    <option value="B">B</option>
-  </select>
-  <input type="number" id="uren" placeholder="Aantal uren">
-  <button onclick="toevoegen()">Toevoegen</button>
-</div>
-
-<div class="card">
-  <h3>Overzicht</h3>
-  <div id="overzicht"></div>
-</div>
-
+<header>
+<h2>Verlofplanner</h2>
+</header>
+<div class="container" id="app"></div>
 <script>
-let data = JSON.parse(localStorage.getItem('verlof')) || {};
+const codes = {
+ EL: {name:'Eindeloopbaan', hours:8},
+ R: {name:'Overuren', hours:10.5},
+ F: {name:'Feestdag', hours:0},
+ C: {name:'Compensatie', hours:5.5},
+ S: {name:'Verlof', hours:15},
+ B: {name:'Verlof B', hours:120}
+};
 
-function toevoegen(){
-  let code = document.getElementById('code').value;
-  let uren = parseFloat(document.getElementById('uren').value);
+const workDayHours = 8;
 
-  if(!data[code]) data[code] = 0;
-  data[code] += uren;
-
-  localStorage.setItem('verlof', JSON.stringify(data));
-  toon();
+function getDeadline(month){
+ const map = {
+ 1:'15-10',2:'15-11',3:'15-12',4:'15-01',5:'15-02',6:'15-03',
+ 7:'15-04',8:'15-05',9:'15-06',10:'15-07',11:'15-08',12:'15-09'
+ };
+ return map[month];
 }
 
-function toon(){
-  let html = '';
-  for(let key in data){
-    html += `<p>${key}: ${data[key]} uur</p>`;
-  }
-  document.getElementById('overzicht').innerHTML = html;
+function daysBetween(dateStr){
+ const [d,m] = dateStr.split('-');
+ const now = new Date();
+ let year = now.getFullYear();
+ let target = new Date(year, m-1, d);
+ if(target < now) target.setFullYear(year+1);
+ return Math.ceil((target-now)/(1000*60*60*24));
 }
 
-toon();
+function load(){
+ return JSON.parse(localStorage.getItem('data')) || codes;
+}
 
-// Service worker registreren
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
+function save(data){
+ localStorage.setItem('data', JSON.stringify(data));
+}
+
+function render(){
+ const data = load();
+ const app = document.getElementById('app');
+ app.innerHTML='';
+ const month = new Date().getMonth()+1;
+
+ Object.keys(data).forEach(code=>{
+  const item = data[code];
+  const days = (item.hours / workDayHours).toFixed(2);
+  const deadline = getDeadline(month);
+  const remaining = daysBetween(deadline);
+
+  let color = 'green';
+  if(remaining < 60) color='orange';
+  if(remaining < 30) color='red';
+
+  const percent = Math.min(100, item.hours);
+
+  const div = document.createElement('div');
+  div.className='card';
+  div.innerHTML = `
+   <h3>${code}</h3>
+   <p>${item.name}</p>
+   <p>Uren: ${item.hours}</p>
+   <p>Dagen: ${days}</p>
+   <div class="progress"><div class="bar" style="width:${percent}%; background:${color}"></div></div>
+   <div class="deadline">Deadline: ${deadline} (${remaining} dagen)</div>
+   <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
+   <button onclick="resetCode('${code}')">Reset</button>
+  `;
+  app.appendChild(div);
+ });
+}
+
+function update(code, value){
+ const data = load();
+ data[code].hours = parseFloat(value);
+ save(data);
+ render();
+}
+
+function resetCode(code){
+ const data = load();
+ data[code].hours = 0;
+ save(data);
+ render();
+}
+
+render();
+
+if('serviceWorker' in navigator){
+ navigator.serviceWorker.register('sw.js');
 }
 </script>
-
 </body>
 </html>
 
-
-<!-- ============================ -->
-<!-- manifest.json (apart bestand) -->
-<!-- ============================ -->
+<!-- manifest.json -->
 {
-  "name": "Verlof Planner",
-  "short_name": "Planner",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#007bff",
-  "icons": [
-    {
-      "src": "icon.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    }
-  ]
+ "name": "Verlofplanner",
+ "short_name": "Verlof",
+ "start_url": "index.html",
+ "display": "standalone",
+ "background_color": "#ffffff",
+ "theme_color": "#333",
+ "icons": []
 }
 
-
-<!-- ============================ -->
-<!-- sw.js (apart bestand) -->
-<!-- ============================ -->
-const cacheName = 'verlof-app-v1';
-
+<!-- sw.js -->
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(cacheName).then(cache => {
-      return cache.addAll([
-        './',
-      ]);
-    })
-  );
+ self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(response => {
-      return response || fetch(e.request);
-    })
-  );
+ e.respondWith(fetch(e.request).catch(()=> new Response('Offline')));
 });
