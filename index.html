@@ -1,157 +1,141 @@
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verlofplanner</title>
-<link rel="manifest" href="manifest.json">
-<style>
-body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
-header { background:#333; color:#fff; padding:10px; text-align:center; }
-.container { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; padding:10px; }
-.card { background:#fff; padding:10px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1);} 
-input { width:100%; padding:5px; }
-.progress { height:10px; background:#ddd; border-radius:5px; margin-top:5px; }
-.bar { height:10px; border-radius:5px; }
-.deadline { font-size:12px; margin-top:5px; }
-button { margin-top:5px; padding:5px; width:100%; }
-</style>
-</head>
-<body>
-<header>
-<h2>Verlofplanner</h2>
-</header>
-<div class="container" id="app"></div>
-<script>
-const codes = {
- EL: {name:'Eindeloopbaan', hours:8},
- R: {name:'Overuren', hours:10.5},
- F: {name:'Feestdag', hours:0},
- C: {name:'Compensatie', hours:5.5},
- S: {name:'Verlof', hours:15},
- B: {name:'Verlof B', hours:120}
-};
-
-const workDayHours = 8;
+<!DOCTYPE html>  <html lang="nl">  
+<head>  
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  
+<title>Verlofplanner</title>  
+<link rel="manifest" href="manifest.json">  
+<style>  
+body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }  
+header { background:#333; color:#fff; padding:10px; text-align:center; }  
+.container { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; padding:10px; }  
+.card { background:#fff; padding:10px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1);}   
+input { width:100%; padding:5px; }  
+.progress { height:10px; background:#ddd; border-radius:5px; margin-top:5px; }  
+.bar { height:10px; border-radius:5px; }  
+.deadline { font-size:12px; margin-top:5px; }  
+button { margin-top:5px; padding:5px; width:100%; }  
+</style>  
+</head>  
+<body>  
+<header>  
+<h2>Verlofplanner</h2>  
+</header>  
+<div class="container" id="app"></div>  
+<script>  
+const codes = {  
+ EL: {name:'Eindeloopbaan', hours:8},  
+ R: {name:'Overuren', hours:10.5},  
+ F: {name:'Feestdag', hours:0},  
+ C: {name:'Compensatie', hours:5.5},  
+ S: {name:'Verlof', hours:15},  
+ B: {name:'Verlof B', hours:120}  
+};  const workDayHours = 8;
 const MAX_EL_DAYS = 15;
 
 function getCurrentMonthKey(){
- const d = new Date();
- return d.getFullYear() + '-' + (d.getMonth()+1);
+const d = new Date();
+return d.getFullYear() + '-' + (d.getMonth()+1);
 }
 
 function load(){
- const saved = JSON.parse(localStorage.getItem('data'));
- const monthKey = getCurrentMonthKey();
+const saved = JSON.parse(localStorage.getItem('data'));
+const monthKey = getCurrentMonthKey();
 
- if(!saved || saved.month !== monthKey){
-  const newData = { month: monthKey, values: JSON.parse(JSON.stringify(codes)) };
-  newData.values.EL.hours = 8; // reset EL elke maand
-  localStorage.setItem('data', JSON.stringify(newData));
-  return newData.values;
- }
- return saved.values;
+if(!saved || saved.month !== monthKey){
+const newData = { month: monthKey, values: JSON.parse(JSON.stringify(codes)) };
+newData.values.EL.hours = 8; // reset EL elke maand
+localStorage.setItem('data', JSON.stringify(newData));
+return newData.values;
+}
+return saved.values;
 }
 
 function save(values){
- const monthKey = getCurrentMonthKey();
- localStorage.setItem('data', JSON.stringify({ month: monthKey, values }));
+const monthKey = getCurrentMonthKey();
+localStorage.setItem('data', JSON.stringify({ month: monthKey, values }));
 }
 
 function render(){
- const data = load();
- const app = document.getElementById('app');
- app.innerHTML='';
+const data = load();
+const app = document.getElementById('app');
+app.innerHTML='';
 
- Object.keys(data).forEach(code=>{
-  const item = data[code];
-  const days = (item.hours / workDayHours);
+Object.keys(data).forEach(code=>{
+const item = data[code];
+const days = (item.hours / workDayHours);
 
-  let color = 'green';
-  let message = '';
+let color = 'green';
+let message = '';
 
-  if(code === 'EL'){
-  // Kleuren op basis van 15 dagen limiet
-  if(days >= 15){
-    color = 'red';
-  } else if(days >= 10){
-    color = 'orange';
-  } else {
-    color = 'green';
-  }
-
-  // Geen tekst meer tonen
-  message = '';
+if(code === 'EL'){
+if(days >= MAX_EL_DAYS) {
+color = 'red';
+message = 'Maximum bereikt';
+} else if(days >= 10) {
+color = 'orange';
+message = Nog ${(MAX_EL_DAYS - days).toFixed(1)} dagen beschikbaar;
+} else {
+color = 'green';
+message = Nog ${(MAX_EL_DAYS - days).toFixed(1)} dagen beschikbaar;
+}
 }
 
-  // Aftellen in hele dagen (15 → 1)
-  if(remaining <= 0){
-    message = 'Geen dagen meer beschikbaar';
-  } else {
-    message = `Nog ${remaining} dagen beschikbaar`;
-  }
-}
+const percent = code === 'EL'
+? Math.min(100, (days / MAX_EL_DAYS) * 100)
+: Math.min(100, item.hours);
 
-  const percent = code === 'EL'
-    ? Math.min(100, (days / MAX_EL_DAYS) * 100)
-    : Math.min(100, item.hours);
+const div = document.createElement('div');
+div.className='card';
+div.innerHTML = `
 
-  const div = document.createElement('div');
-  div.className='card';
-  div.innerHTML = `
-   <h3>${code}</h3>
-   <p>${item.name}</p>
-   <p>Uren: ${item.hours}</p>
-   <p>Dagen: ${days.toFixed(2)}</p>
-   ${code === 'EL' ? `<p>Max: ${MAX_EL_DAYS} dagen</p>` : ''}
-   <div class="progress"><div class="bar" style="width:${percent}%; background:${color}"></div></div>
-   ${code === 'EL' ? `<div class="deadline">${message}</div>` : ''}
-   <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
-   <button onclick="resetCode('${code}')">Reset</button>
-  `;
-  app.appendChild(div);
- });
-}
-
-function update(code, value){
- const data = load();
- data[code].hours = parseFloat(value);
- save(data);
- render();
+   <h3>${code}</h3>  
+   <p>${item.name}</p>  
+   <p>Uren: ${item.hours}</p>  
+   <p>Dagen: ${days.toFixed(2)}</p>  
+   ${code === 'EL' ? `<p>Max: ${MAX_EL_DAYS} dagen</p>` : ''}  
+   <div class="progress"><div class="bar" style="width:${percent}%; background:${color}"></div></div>  
+   ${code === 'EL' ? `<div class="deadline">${message}</div>` : ''}  
+   <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">  
+   <button onclick="resetCode('${code}')">Reset</button>  
+  `;  
+  app.appendChild(div);  
+ });  
+}  function update(code, value){
+const data = load();
+data[code].hours = parseFloat(value);
+save(data);
+render();
 }
 
 function resetCode(code){
- const data = load();
- data[code].hours = 0;
- save(data);
- render();
+const data = load();
+data[code].hours = 0;
+save(data);
+render();
 }
 
 render();
 
 if('serviceWorker' in navigator){
- navigator.serviceWorker.register('sw.js');
+navigator.serviceWorker.register('sw.js');
 }
 </script>
-</body>
-</html>
 
-<!-- manifest.json -->
-{
- "name": "Verlofplanner",
- "short_name": "Verlof",
- "start_url": "index.html",
- "display": "standalone",
- "background_color": "#ffffff",
- "theme_color": "#333",
- "icons": []
+</body>  
+</html>  <!-- manifest.json -->  {
+"name": "Verlofplanner",
+"short_name": "Verlof",
+"start_url": "index.html",
+"display": "standalone",
+"background_color": "#ffffff",
+"theme_color": "#333",
+"icons": []
 }
 
-<!-- sw.js -->
-self.addEventListener('install', e => {
- self.skipWaiting();
+<!-- sw.js -->  self.addEventListener('install', e => {
+self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {
- e.respondWith(fetch(e.request).catch(()=> new Response('Offline')));
+e.respondWith(fetch(e.request).catch(()=> new Response('Offline')));
 });
