@@ -5,14 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verlofplanner</title>
 <link rel="manifest" href="manifest.json">
+
 <style>
 body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
 
+/* HEADER */
 header { 
   background:yellow; 
   color:black; 
-  padding:10px; 
+  padding:20px; 
   text-align:center; 
+  position:relative;
+  overflow:hidden;
+}
+
+/* achtergrond naam */
+header::after{
+  content:"Hanne";
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  font-size:60px;
+  font-family:cursive;
+  color:#e6d800; /* donkerder geel */
+  opacity:0.5;
+  pointer-events:none;
 }
 
 .header-line {
@@ -20,10 +38,19 @@ header {
   margin-top:10px;
 }
 
+/* SAMENVATTING */
 .summary {
   text-align:center;
   padding:10px;
   font-weight:bold;
+  font-size:20px; /* groter */
+}
+
+.summary-small {
+  text-align:center;
+  font-size:14px;
+  margin-top:-5px;
+  margin-bottom:10px;
 }
 
 .summary-line {
@@ -31,22 +58,28 @@ header {
   margin:10px 20px;
 }
 
-.container { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; padding:10px; }
+/* GRID */
+.container { 
+  display:grid; 
+  grid-template-columns: 1fr 1fr 1fr; 
+  gap:10px; 
+  padding:10px; 
+}
 
-.card { background:#fff; padding:10px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1);} 
+.card { 
+  background:#fff; 
+  padding:10px; 
+  border-radius:10px; 
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
 
 input { width:100%; padding:5px; }
-
-.progress { height:10px; background:#ddd; border-radius:5px; margin-top:5px; }
-
-.bar { height:10px; border-radius:5px; background:#999; } /* 🔧 geen groen meer */
-
-.deadline { font-size:12px; margin-top:5px; }
 
 button { margin-top:5px; padding:5px; width:100%; }
 
 </style>
 </head>
+
 <body>
 
 <header>
@@ -55,7 +88,6 @@ button { margin-top:5px; padding:5px; width:100%; }
 </header>
 
 <div id="summary"></div>
-
 <div class="container" id="app"></div>
 
 <script>
@@ -69,14 +101,15 @@ const codes = {
 };
 
 const workDayHours = 8;
-const MAX_EL_DAYS = 30;
 
-// 🔧 maand +3 → nu enkel "15 maand"
-function getFutureMonth(){
+// 🔧 maand +3 (tekst voor samenvatting)
+function getFutureMonthText(){
   const now = new Date();
+  const currentMonth = now.toLocaleString('nl-NL', { month: 'long' });
   const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
-  const maandNaam = future.toLocaleString('nl-NL', { month: 'long' });
-  return `15 ${maandNaam}`;
+  const futureMonth = future.toLocaleString('nl-NL', { month: 'long' });
+
+  return `15 ${currentMonth} = ${futureMonth}`;
 }
 
 function getCurrentMonthKey(){
@@ -126,16 +159,6 @@ function render(){
   if(['R','F','C'].includes(code)) totalRFC += days;
   if(['S','B'].includes(code)) totalSB += days;
 
-  let percent = Math.min(100, item.hours);
-  let message = '';
-
-  if(['EL','R','F','C'].includes(code)){
-    const today = new Date().getDate();
-    const progressDays = Math.min(today, 15);
-    percent = (progressDays / 15) * 100;
-    message = getFutureMonth();
-  }
-
   const div = document.createElement('div');
   div.className='card';
   div.innerHTML = `
@@ -143,9 +166,6 @@ function render(){
    <p>${item.name}</p>
    <p>Uren: ${item.hours}</p>
    <p>Dagen: ${days.toFixed(2)}</p>
-   ${code === 'EL' ? `<p>Max: ${MAX_EL_DAYS} dagen</p>` : ''}
-   <div class="progress"><div class="bar" style="width:${percent}%"></div></div>
-   ${['EL','R','F','C'].includes(code) ? `<div class="deadline">${message}</div>` : ''}
    <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
    <button onclick="minusHalfDay('${code}')">-1/2 dag</button>
    <button onclick="resetCode('${code}')">Reset</button>
@@ -154,11 +174,17 @@ function render(){
  });
 
  // 🔧 Samenvatting
+ const maandTekst = getFutureMonthText();
+
  summary.innerHTML = `
    <div class="summary-line"></div>
    <div class="summary">Totaal R + F + C: ${totalRFC.toFixed(2)} dagen</div>
+   <div class="summary-small">${maandTekst}</div>
+
    <div class="summary-line"></div>
    <div class="summary">Totaal S + B: ${totalSB.toFixed(2)} dagen</div>
+   <div class="summary-small">${maandTekst}</div>
+
    <div class="summary-line"></div>
  `;
 }
