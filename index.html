@@ -36,7 +36,15 @@ const codes = {
 };
 
 const workDayHours = 8;
-const MAX_EL_DAYS = 30; // balk blijft 30 dagen
+const MAX_EL_DAYS = 30;
+
+// 🔧 NIEUW: maand +2 functie
+function getFutureMonthRange(){
+  const now = new Date();
+  const future = new Date(now.getFullYear(), now.getMonth() + 2, 1);
+  const maandNaam = future.toLocaleString('nl-NL', { month: 'long' });
+  return `1 t/m 15 ${maandNaam}`;
+}
 
 function getCurrentMonthKey(){
  const d = new Date();
@@ -73,8 +81,19 @@ function render(){
   let color = 'green';
   let message = '';
 
-  // 🔧 AANGEPAST: enkel EL logica
+  let percent = code === 'EL'
+    ? Math.min(100, (days / MAX_EL_DAYS) * 100)
+    : Math.min(100, item.hours);
+
+  // 🔧 AANGEPAST: EL gedrag
   if(code === 'EL'){
+    const today = new Date().getDate();
+
+    // balk op basis van dag 1 → 15
+    const progressDays = Math.min(today, 15);
+    percent = (progressDays / 15) * 100;
+
+    // kleur op basis van jouw regels
     if(days >= 15){
       color = 'red';
     } else if(days >= 10){
@@ -83,12 +102,9 @@ function render(){
       color = 'green';
     }
 
-    message = ''; // geen beschikbare dagen meer tonen
+    // maand +2 tekst
+    message = getFutureMonthRange();
   }
-
-  const percent = code === 'EL'
-    ? Math.min(100, (days / MAX_EL_DAYS) * 100)
-    : Math.min(100, item.hours);
 
   const div = document.createElement('div');
   div.className='card';
@@ -99,6 +115,7 @@ function render(){
    <p>Dagen: ${days.toFixed(2)}</p>
    ${code === 'EL' ? `<p>Max: ${MAX_EL_DAYS} dagen</p>` : ''}
    <div class="progress"><div class="bar" style="width:${percent}%; background:${color}"></div></div>
+   ${code === 'EL' ? `<div class="deadline">${message}</div>` : ''}
    <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
    <button onclick="resetCode('${code}')">Reset</button>
   `;
