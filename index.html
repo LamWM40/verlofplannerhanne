@@ -101,29 +101,59 @@ const workDayHours = 8;
 // 🔧 NIEUW: jouw tabel exact toegepast
 function getFutureMonthText(){
   const now = new Date();
-  const m = now.getMonth(); // 0 = jan
-
-  const months = [
+  const currentMonth = now.getMonth(); // 0 = januari
+  const monthNames = [
     'januari','februari','maart','april','mei','juni',
     'juli','augustus','september','oktober','november','december'
   ];
 
-  let result = '';
+  let deadlineDay = 15;
+  let deadlineMonth = '';
 
-  switch(m){
-    case 0: result = 'april'; break;
-    case 1: result = 'mei'; break;
-    case 2: result = 'juni'; break;
-    case 3: result = 'juli'; break;
-    case 4: result = 'augustus'; break;
-    case 5: result = 'september'; break;
-    case 6: result = 'september'; break;
-    case 7: result = 'september'; break;
-    case 8: result = 'december'; break;
-    case 9: result = 'januari'; break;
-    case 10: result = 'februari'; break;
-    case 11: result = 'maart'; break;
+  // 🔧 jouw tabel logica
+  switch(currentMonth){
+
+    case 0: // januari
+      deadlineMonth = 'oktober';
+      break;
+
+    case 1: // februari
+      deadlineMonth = 'november';
+      break;
+
+    case 2: // maart
+      deadlineMonth = 'december';
+      break;
+
+    case 3: // april
+    case 4: // mei
+    case 5: // juni
+    case 6: // juli
+    case 7: // augustus
+      deadlineMonth = 'januari';
+      break;
+
+    case 8: // september
+      deadlineMonth = 'juni';
+      break;
+
+    case 9: // oktober
+      deadlineMonth = 'augustus';
+      break;
+
+    case 10: // november
+      deadlineMonth = 'september';
+      break;
+
+    case 11: // december
+      deadlineMonth = 'september';
+      break;
   }
+
+  const currentMonthName = monthNames[currentMonth];
+
+  return `15 ${currentMonthName} = ${deadlineMonth}`;
+}
 
   return `15 ${months[m]} = ${result}`;
 }
