@@ -38,10 +38,10 @@ const codes = {
 const workDayHours = 8;
 const MAX_EL_DAYS = 30;
 
-// 🔧 NIEUW: maand +2 functie
+// 🔧 AANGEPAST: nu +3 maanden
 function getFutureMonthRange(){
   const now = new Date();
-  const future = new Date(now.getFullYear(), now.getMonth() + 2, 1);
+  const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
   const maandNaam = future.toLocaleString('nl-NL', { month: 'long' });
   return `1 t/m 15 ${maandNaam}`;
 }
@@ -81,19 +81,17 @@ function render(){
   let color = 'green';
   let message = '';
 
-  let percent = code === 'EL'
-    ? Math.min(100, (days / MAX_EL_DAYS) * 100)
-    : Math.min(100, item.hours);
+  let percent = Math.min(100, item.hours);
 
-  // 🔧 AANGEPAST: EL gedrag
-  if(code === 'EL'){
+  // 🔧 AANGEPAST: zelfde gedrag voor EL, R, F, C
+  if(['EL','R','F','C'].includes(code)){
     const today = new Date().getDate();
 
-    // balk op basis van dag 1 → 15
+    // balk loopt van dag 1 → 15
     const progressDays = Math.min(today, 15);
     percent = (progressDays / 15) * 100;
 
-    // kleur op basis van jouw regels
+    // kleuren gebaseerd op dagen
     if(days >= 15){
       color = 'red';
     } else if(days >= 10){
@@ -102,7 +100,7 @@ function render(){
       color = 'green';
     }
 
-    // maand +2 tekst
+    // maand +3
     message = getFutureMonthRange();
   }
 
@@ -115,7 +113,7 @@ function render(){
    <p>Dagen: ${days.toFixed(2)}</p>
    ${code === 'EL' ? `<p>Max: ${MAX_EL_DAYS} dagen</p>` : ''}
    <div class="progress"><div class="bar" style="width:${percent}%; background:${color}"></div></div>
-   ${code === 'EL' ? `<div class="deadline">${message}</div>` : ''}
+   ${['EL','R','F','C'].includes(code) ? `<div class="deadline">${message}</div>` : ''}
    <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
    <button onclick="resetCode('${code}')">Reset</button>
   `;
