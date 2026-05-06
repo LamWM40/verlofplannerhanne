@@ -20,7 +20,7 @@ button { margin-top:5px; padding:5px; width:100%; }
 <body>
 
 <header>
-<h2 style="color:blue;">Verlofplanner 2</h2>
+<h2 style="color:white;">Verlofplanner 2</h2>
 </header>
 
 <div class="container" id="app"></div>
@@ -38,7 +38,7 @@ const codes = {
 const workDayHours = 8;
 const MAX_EL_DAYS = 30;
 
-// 🔧 AANGEPAST: nu +3 maanden
+// +3 maanden
 function getFutureMonthRange(){
   const now = new Date();
   const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
@@ -69,6 +69,14 @@ function save(values){
  localStorage.setItem('data', JSON.stringify({ month: monthKey, values }));
 }
 
+// 🔧 NIEUW: -4 uur knop
+function minusHalfDay(code){
+ const data = load();
+ data[code].hours = Math.max(0, data[code].hours - 4);
+ save(data);
+ render();
+}
+
 function render(){
  const data = load();
  const app = document.getElementById('app');
@@ -80,18 +88,13 @@ function render(){
 
   let color = 'green';
   let message = '';
-
   let percent = Math.min(100, item.hours);
 
-  // 🔧 AANGEPAST: zelfde gedrag voor EL, R, F, C
   if(['EL','R','F','C'].includes(code)){
     const today = new Date().getDate();
-
-    // balk loopt van dag 1 → 15
     const progressDays = Math.min(today, 15);
     percent = (progressDays / 15) * 100;
 
-    // kleuren gebaseerd op dagen
     if(days >= 15){
       color = 'red';
     } else if(days >= 10){
@@ -100,7 +103,6 @@ function render(){
       color = 'green';
     }
 
-    // maand +3
     message = getFutureMonthRange();
   }
 
@@ -115,6 +117,7 @@ function render(){
    <div class="progress"><div class="bar" style="width:${percent}%; background:${color}"></div></div>
    ${['EL','R','F','C'].includes(code) ? `<div class="deadline">${message}</div>` : ''}
    <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
+   <button onclick="minusHalfDay('${code}')">-1/2 dag</button>
    <button onclick="resetCode('${code}')">Reset</button>
   `;
   app.appendChild(div);
