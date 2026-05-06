@@ -7,21 +7,54 @@
 <link rel="manifest" href="manifest.json">
 <style>
 body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
-header { background:#333; color:#fff; padding:10px; text-align:center; }
+
+header { 
+  background:yellow; 
+  color:black; 
+  padding:10px; 
+  text-align:center; 
+}
+
+.header-line {
+  border-top:2px solid #000;
+  margin-top:10px;
+}
+
+.summary {
+  text-align:center;
+  padding:10px;
+  font-weight:bold;
+}
+
+.summary-line {
+  border-top:1px solid #000;
+  margin:10px 20px;
+}
+
 .container { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; padding:10px; }
+
 .card { background:#fff; padding:10px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1);} 
+
 input { width:100%; padding:5px; }
+
 .progress { height:10px; background:#ddd; border-radius:5px; margin-top:5px; }
-.bar { height:10px; border-radius:5px; }
+
+.bar { height:10px; border-radius:5px; background:#999; } /* 🔧 geen groen meer */
+
 .deadline { font-size:12px; margin-top:5px; }
+
 button { margin-top:5px; padding:5px; width:100%; }
+
 </style>
 </head>
 <body>
 
 <header>
-<h2 style="color:white;">Verlofplanner 2</h2>
+<h2>Verlofplanner</h2>
+<div class="header-line"></div>
 </header>
+
+<div id="summary"></div>
 
 <div class="container" id="app"></div>
 
@@ -38,12 +71,12 @@ const codes = {
 const workDayHours = 8;
 const MAX_EL_DAYS = 30;
 
-// +3 maanden
-function getFutureMonthRange(){
+// 🔧 maand +3 → nu enkel "15 maand"
+function getFutureMonth(){
   const now = new Date();
   const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
   const maandNaam = future.toLocaleString('nl-NL', { month: 'long' });
-  return `1 t/m 15 ${maandNaam}`;
+  return `15 ${maandNaam}`;
 }
 
 function getCurrentMonthKey(){
@@ -69,7 +102,6 @@ function save(values){
  localStorage.setItem('data', JSON.stringify({ month: monthKey, values }));
 }
 
-// 🔧 NIEUW: -4 uur knop
 function minusHalfDay(code){
  const data = load();
  data[code].hours = Math.max(0, data[code].hours - 4);
@@ -80,30 +112,28 @@ function minusHalfDay(code){
 function render(){
  const data = load();
  const app = document.getElementById('app');
+ const summary = document.getElementById('summary');
+
  app.innerHTML='';
+
+ let totalRFC = 0;
+ let totalSB = 0;
 
  Object.keys(data).forEach(code=>{
   const item = data[code];
   const days = (item.hours / workDayHours);
 
-  let color = 'green';
-  let message = '';
+  if(['R','F','C'].includes(code)) totalRFC += days;
+  if(['S','B'].includes(code)) totalSB += days;
+
   let percent = Math.min(100, item.hours);
+  let message = '';
 
   if(['EL','R','F','C'].includes(code)){
     const today = new Date().getDate();
     const progressDays = Math.min(today, 15);
     percent = (progressDays / 15) * 100;
-
-    if(days >= 15){
-      color = 'red';
-    } else if(days >= 10){
-      color = 'orange';
-    } else {
-      color = 'green';
-    }
-
-    message = getFutureMonthRange();
+    message = getFutureMonth();
   }
 
   const div = document.createElement('div');
@@ -114,7 +144,7 @@ function render(){
    <p>Uren: ${item.hours}</p>
    <p>Dagen: ${days.toFixed(2)}</p>
    ${code === 'EL' ? `<p>Max: ${MAX_EL_DAYS} dagen</p>` : ''}
-   <div class="progress"><div class="bar" style="width:${percent}%; background:${color}"></div></div>
+   <div class="progress"><div class="bar" style="width:${percent}%"></div></div>
    ${['EL','R','F','C'].includes(code) ? `<div class="deadline">${message}</div>` : ''}
    <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
    <button onclick="minusHalfDay('${code}')">-1/2 dag</button>
@@ -122,6 +152,15 @@ function render(){
   `;
   app.appendChild(div);
  });
+
+ // 🔧 Samenvatting
+ summary.innerHTML = `
+   <div class="summary-line"></div>
+   <div class="summary">Totaal R + F + C: ${totalRFC.toFixed(2)} dagen</div>
+   <div class="summary-line"></div>
+   <div class="summary">Totaal S + B: ${totalSB.toFixed(2)} dagen</div>
+   <div class="summary-line"></div>
+ `;
 }
 
 function update(code, value){
@@ -147,23 +186,3 @@ if('serviceWorker' in navigator){
 
 </body>
 </html>
-
-<!-- manifest.json -->
-{
- "name": "Verlofplanner",
- "short_name": "Verlof",
- "start_url": "index.html",
- "display": "standalone",
- "background_color": "#ffffff",
- "theme_color": "#333",
- "icons": []
-}
-
-<!-- sw.js -->
-self.addEventListener('install', e => {
- self.skipWaiting();
-});
-
-self.addEventListener('fetch', e => {
- e.respondWith(fetch(e.request).catch(()=> new Response('Offline')));
-});
