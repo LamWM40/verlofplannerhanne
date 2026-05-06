@@ -8,20 +8,15 @@
 <style>
 body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
 
-header { 
-  background:yellow; 
-  color:black; 
-  padding:20px; 
-  text-align:center; 
-  position:relative;
-}
+header { background:yellow; padding:20px; text-align:center; }
 
-.summary { text-align:center; padding:10px; font-weight:bold; }
-.container { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; padding:10px; }
+.container { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; padding:10px; }
 
 .card { background:#fff; padding:10px; border-radius:10px; }
-input { width:100%; padding:5px; }
-button { margin-top:5px; padding:5px; width:100%; }
+
+input, button { width:100%; margin-top:5px; padding:5px; }
+
+.summary { text-align:center; padding:10px; font-weight:bold; }
 </style>
 </head>
 
@@ -29,82 +24,75 @@ button { margin-top:5px; padding:5px; width:100%; }
 
 <header><h2>Verlofplanner</h2></header>
 
-<div id="summary"></div>
-<div class="container" id="app"></div>
+<div id="summary" class="summary"></div>
+<div id="app" class="container"></div>
 
 <script>
 const codes = {
- EL: {name:'Eindeloopbaan', hours:8},
- R: {name:'Overuren', hours:10.5},
- F: {name:'Feestdag', hours:0},
- C: {name:'Compensatie', hours:5.5},
- S: {name:'Verlof', hours:15},
- B: {name:'Verlof B', hours:120}
+ EL:{name:'Eindeloopbaan',hours:8},
+ R:{name:'Overuren',hours:10.5},
+ F:{name:'Feestdag',hours:0},
+ C:{name:'Compensatie',hours:5.5},
+ S:{name:'Verlof',hours:15},
+ B:{name:'Verlof B',hours:120}
 };
 
 const workDayHours = 8;
 
 function getFutureMonthText(){
-  const now = new Date();
-  const m = now.getMonth();
+ const m = new Date().getMonth();
+ const names = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
 
-  const names = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+ let target='';
+ switch(m){
+  case 0: target='oktober'; break;
+  case 1: target='november'; break;
+  case 2: target='december'; break;
+  case 3:
+  case 4:
+  case 5:
+  case 6:
+  case 7: target='januari'; break;
+  case 8: target='juni'; break;
+  case 9: target='augustus'; break;
+  case 10:
+  case 11: target='september'; break;
+ }
 
-  let target = '';
-
-  switch(m){
-    case 0: target='oktober'; break;
-    case 1: target='november'; break;
-    case 2: target='december'; break;
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7: target='januari'; break;
-    case 8: target='juni'; break;
-    case 9: target='augustus'; break;
-    case 10:
-    case 11: target='september'; break;
-  }
-
-  return `15 ${names[m]} = ${target}`;
-}
-
-function getCurrentMonthKey(){
- const d = new Date();
- return d.getFullYear() + '-' + (d.getMonth()+1);
+ return `15 ${names[m]} = ${target}`;
 }
 
 function load(){
- const raw = localStorage.getItem('data');
- const saved = raw ? JSON.parse(raw) : null;
+ try{
+  const raw = localStorage.getItem('data');
+  if(!raw) throw "empty";
 
- const key = getCurrentMonthKey();
+  const parsed = JSON.parse(raw);
+  if(!parsed.values) throw "broken";
 
- if(!saved || saved.month !== key){
-  const fresh = { month: key, values: JSON.parse(JSON.stringify(codes)) };
-  localStorage.setItem('data', JSON.stringify(fresh));
-  return fresh.values;
+  return parsed.values;
+
+ }catch(e){
+  const fresh = JSON.parse(JSON.stringify(codes));
+  localStorage.setItem('data', JSON.stringify({values:fresh}));
+  return fresh;
  }
- return saved.values;
 }
 
 function save(values){
- const key = getCurrentMonthKey();
- localStorage.setItem('data', JSON.stringify({ month:key, values }));
+ localStorage.setItem('data', JSON.stringify({values}));
+}
+
+function update(code,val){
+ const d = load();
+ d[code].hours = isNaN(parseFloat(val)) ? 0 : parseFloat(val);
+ save(d);
+ render();
 }
 
 function minusHalfDay(code){
  const d = load();
  d[code].hours = Math.max(0, d[code].hours - 4);
- save(d);
- render();
-}
-
-function update(code, value){
- const d = load();
- const num = parseFloat(value);
- d[code].hours = isNaN(num) ? 0 : num;
  save(d);
  render();
 }
@@ -123,485 +111,41 @@ function render(){
 
  app.innerHTML='';
 
- let totalRFC = 0;
- let totalSB = 0;
+ let rfc=0;
+ let sb=0;
 
  Object.keys(data).forEach(code=>{
-  const item = data[code];
-  const days = item.hours / workDayHours;
+  const h = data[code].hours;
+  const d = h / workDayHours;
 
-  if(['R','F','C'].includes(code)) totalRFC += days;
-  if(['S','B'].includes(code)) totalSB += days;
+  if(['R','F','C'].includes(code)) rfc += d;
+  if(['S','B'].includes(code)) sb += d;
 
-  const div = document.createElement('div');
-  div.className='card';
+  const el = document.createElement('div');
+  el.className='card';
 
-  div.innerHTML = `
-   <h3>${code}</h3>
-   <p>${item.name}</p>
-   <p>Uren: ${item.hours}</p>
-   <p>Dagen: ${days.toFixed(2)}</p>
-   <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
+  el.innerHTML=`
+   <b>${code}</b><br>
+   ${data[code].name}<br>
+   Uren: ${h}<br>
+   Dagen: ${d.toFixed(2)}
+   <input type="number" value="${h}" onchange="update('${code}',this.value)">
    <button onclick="minusHalfDay('${code}')">-1/2 dag</button>
    <button onclick="resetCode('${code}')">Reset</button>
   `;
 
-  app.appendChild(div);
+  app.appendChild(el);
  });
 
  summary.innerHTML = `
-   <div>Totaal R+F+C: ${totalRFC.toFixed(2)} dagen</div>
-   <div>${getFutureMonthText()}</div>
-   <br>
-   <div>Totaal S+B: ${totalSB.toFixed(2)} dagen</div>
-   <div>${getFutureMonthText()}</div>
+  R+F+C: ${rfc.toFixed(2)} dagen<br>
+  ${getFutureMonthText()}<br><br>
+  S+B: ${sb.toFixed(2)} dagen<br>
+  ${getFutureMonthText()}
  `;
 }
 
 render();
-</script>
-
-</body>
-</html>
-
-.summary {
-  text-align:center;
-  padding:10px;
-  font-weight:bold;
-  font-size:20px;
-}
-
-.summary-small {
-  text-align:center;
-  font-size:14px;
-  margin-top:-5px;
-  margin-bottom:10px;
-}
-
-.summary-line {
-  border-top:1px solid #000;
-  margin:10px 20px;
-}
-
-.container { 
-  display:grid; 
-  grid-template-columns: 1fr 1fr 1fr; 
-  gap:10px; 
-  padding:10px; 
-}
-
-.card { 
-  background:#fff; 
-  padding:10px; 
-  border-radius:10px; 
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-
-input { width:100%; padding:5px; }
-
-button { margin-top:5px; padding:5px; width:100%; }
-
-</style>
-</head>
-
-<body>
-
-<header>
-<h2>Verlofplanner</h2>
-<div class="header-line"></div>
-</header>
-
-<div id="summary"></div>
-<div class="container" id="app"></div>
-
-<script>
-const codes = {
- EL: {name:'Eindeloopbaan', hours:8},
- R: {name:'Overuren', hours:10.5},
- F: {name:'Feestdag', hours:0},
- C: {name:'Compensatie', hours:5.5},
- S: {name:'Verlof', hours:15},
- B: {name:'Verlof B', hours:120}
-};
-
-const workDayHours = 8;
-
-// 🔧 NIEUW: jouw tabel exact toegepast
-function getFutureMonthText(){
-  const now = new Date();
-  const currentMonth = now.getMonth(); // 0 = januari
-  const monthNames = [
-    'januari','februari','maart','april','mei','juni',
-    'juli','augustus','september','oktober','november','december'
-  ];
-
-  let deadlineDay = 15;
-  let deadlineMonth = '';
-
-  // 🔧 jouw tabel logica
-  switch(currentMonth){
-
-    case 0: // januari
-      deadlineMonth = 'oktober';
-      break;
-
-    case 1: // februari
-      deadlineMonth = 'november';
-      break;
-
-    case 2: // maart
-      deadlineMonth = 'december';
-      break;
-
-    case 3: // april
-    case 4: // mei
-    case 5: // juni
-    case 6: // juli
-    case 7: // augustus
-      deadlineMonth = 'januari';
-      break;
-
-    case 8: // september
-      deadlineMonth = 'juni';
-      break;
-
-    case 9: // oktober
-      deadlineMonth = 'augustus';
-      break;
-
-    case 10: // november
-      deadlineMonth = 'september';
-      break;
-
-    case 11: // december
-      deadlineMonth = 'september';
-      break;
-  }
-
-  const currentMonthName = monthNames[currentMonth];
-
-  return `15 ${currentMonthName} = ${deadlineMonth}`;
-}
-
-  return `15 ${months[m]} = ${result}`;
-}
-
-function getCurrentMonthKey(){
- const d = new Date();
- return d.getFullYear() + '-' + (d.getMonth()+1);
-}
-
-function load(){
- const saved = JSON.parse(localStorage.getItem('data'));
- const monthKey = getCurrentMonthKey();
-
- if(!saved || saved.month !== monthKey){
-  const newData = { month: monthKey, values: JSON.parse(JSON.stringify(codes)) };
-  newData.values.EL.hours = 8;
-  localStorage.setItem('data', JSON.stringify(newData));
-  return newData.values;
- }
- return saved.values;
-}
-
-function save(values){
- const monthKey = getCurrentMonthKey();
- localStorage.setItem('data', JSON.stringify({ month: monthKey, values }));
-}
-
-function minusHalfDay(code){
- const data = load();
- data[code].hours = Math.max(0, data[code].hours - 4);
- save(data);
- render();
-}
-
-function render(){
- const data = load();
- const app = document.getElementById('app');
- const summary = document.getElementById('summary');
-
- app.innerHTML='';
-
- let totalRFC = 0;
- let totalSB = 0;
-
- Object.keys(data).forEach(code=>{
-  const item = data[code];
-  const days = (item.hours / workDayHours);
-
-  if(['R','F','C'].includes(code)) totalRFC += days;
-  if(['S','B'].includes(code)) totalSB += days;
-
-  const div = document.createElement('div');
-  div.className='card';
-  div.innerHTML = `
-   <h3>${code}</h3>
-   <p>${item.name}</p>
-   <p>Uren: ${item.hours}</p>
-   <p>Dagen: ${days.toFixed(2)}</p>
-   <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
-   <button onclick="minusHalfDay('${code}')">-1/2 dag</button>
-   <button onclick="resetCode('${code}')">Reset</button>
-  `;
-  app.appendChild(div);
- });
-
- const maandTekst = getFutureMonthText();
-
- summary.innerHTML = `
-   <div class="summary-line"></div>
-   <div class="summary">Totaal R + F + C: ${totalRFC.toFixed(2)} dagen</div>
-   <div class="summary-small">${maandTekst}</div>
-
-   <div class="summary-line"></div>
-   <div class="summary">Totaal S + B: ${totalSB.toFixed(2)} dagen</div>
-   <div class="summary-small">${maandTekst}</div>
-
-   <div class="summary-line"></div>
- `;
-}
-
-function update(code, value){
- const data = load();
- data[code].hours = parseFloat(value);
- save(data);
- render();
-}
-
-function resetCode(code){
- const data = load();
- data[code].hours = 0;
- save(data);
- render();
-}
-
-render();
-
-if('serviceWorker' in navigator){
- navigator.serviceWorker.register('sw.js');
-}
-</script>
-
-</body>
-</html>
-.summary {
-  text-align:center;
-  padding:10px;
-  font-weight:bold;
-  font-size:20px;
-}
-
-.summary-small {
-  text-align:center;
-  font-size:14px;
-  margin-top:-5px;
-  margin-bottom:10px;
-}
-
-.summary-line {
-  border-top:1px solid #000;
-  margin:10px 20px;
-}
-
-.container { 
-  display:grid; 
-  grid-template-columns: 1fr 1fr 1fr; 
-  gap:10px; 
-  padding:10px; 
-}
-
-.card { 
-  background:#fff; 
-  padding:10px; 
-  border-radius:10px; 
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-
-input { width:100%; padding:5px; }
-
-button { margin-top:5px; padding:5px; width:100%; }
-
-</style>
-</head>
-
-<body>
-
-<header>
-<h2>Verlofplanner</h2>
-<div class="header-line"></div>
-</header>
-
-<div id="summary"></div>
-<div class="container" id="app"></div>
-
-<script>
-const codes = {
- EL: {name:'Eindeloopbaan', hours:8},
- R: {name:'Overuren', hours:10.5},
- F: {name:'Feestdag', hours:0},
- C: {name:'Compensatie', hours:5.5},
- S: {name:'Verlof', hours:15},
- B: {name:'Verlof B', hours:120}
-};
-
-const workDayHours = 8;
-
-// 🔧 NIEUW: jouw tabel exact toegepast
-function getFutureMonthText(){
-  const now = new Date();
-  const currentMonth = now.getMonth(); // 0 = januari
-  const monthNames = [
-    'januari','februari','maart','april','mei','juni',
-    'juli','augustus','september','oktober','november','december'
-  ];
-
-  let deadlineDay = 15;
-  let deadlineMonth = '';
-
-  // 🔧 jouw tabel logica
-  switch(currentMonth){
-
-    case 0: // januari
-      deadlineMonth = 'oktober';
-      break;
-
-    case 1: // februari
-      deadlineMonth = 'november';
-      break;
-
-    case 2: // maart
-      deadlineMonth = 'december';
-      break;
-
-    case 3: // april
-    case 4: // mei
-    case 5: // juni
-    case 6: // juli
-    case 7: // augustus
-      deadlineMonth = 'januari';
-      break;
-
-    case 8: // september
-      deadlineMonth = 'juni';
-      break;
-
-    case 9: // oktober
-      deadlineMonth = 'augustus';
-      break;
-
-    case 10: // november
-      deadlineMonth = 'september';
-      break;
-
-    case 11: // december
-      deadlineMonth = 'september';
-      break;
-  }
-
-  const currentMonthName = monthNames[currentMonth];
-
-  return `15 ${currentMonthName} = ${deadlineMonth}`;
-}
-
-  return `15 ${months[m]} = ${result}`;
-}
-
-function getCurrentMonthKey(){
- const d = new Date();
- return d.getFullYear() + '-' + (d.getMonth()+1);
-}
-
-function load(){
- const saved = JSON.parse(localStorage.getItem('data'));
- const monthKey = getCurrentMonthKey();
-
- if(!saved || saved.month !== monthKey){
-  const newData = { month: monthKey, values: JSON.parse(JSON.stringify(codes)) };
-  newData.values.EL.hours = 8;
-  localStorage.setItem('data', JSON.stringify(newData));
-  return newData.values;
- }
- return saved.values;
-}
-
-function save(values){
- const monthKey = getCurrentMonthKey();
- localStorage.setItem('data', JSON.stringify({ month: monthKey, values }));
-}
-
-function minusHalfDay(code){
- const data = load();
- data[code].hours = Math.max(0, data[code].hours - 4);
- save(data);
- render();
-}
-
-function render(){
- const data = load();
- const app = document.getElementById('app');
- const summary = document.getElementById('summary');
-
- app.innerHTML='';
-
- let totalRFC = 0;
- let totalSB = 0;
-
- Object.keys(data).forEach(code=>{
-  const item = data[code];
-  const days = (item.hours / workDayHours);
-
-  if(['R','F','C'].includes(code)) totalRFC += days;
-  if(['S','B'].includes(code)) totalSB += days;
-
-  const div = document.createElement('div');
-  div.className='card';
-  div.innerHTML = `
-   <h3>${code}</h3>
-   <p>${item.name}</p>
-   <p>Uren: ${item.hours}</p>
-   <p>Dagen: ${days.toFixed(2)}</p>
-   <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
-   <button onclick="minusHalfDay('${code}')">-1/2 dag</button>
-   <button onclick="resetCode('${code}')">Reset</button>
-  `;
-  app.appendChild(div);
- });
-
- const maandTekst = getFutureMonthText();
-
- summary.innerHTML = `
-   <div class="summary-line"></div>
-   <div class="summary">Totaal R + F + C: ${totalRFC.toFixed(2)} dagen</div>
-   <div class="summary-small">${maandTekst}</div>
-
-   <div class="summary-line"></div>
-   <div class="summary">Totaal S + B: ${totalSB.toFixed(2)} dagen</div>
-   <div class="summary-small">${maandTekst}</div>
-
-   <div class="summary-line"></div>
- `;
-}
-
-function update(code, value){
- const data = load();
- data[code].hours = parseFloat(value);
- save(data);
- render();
-}
-
-function resetCode(code){
- const data = load();
- data[code].hours = 0;
- save(data);
- render();
-}
-
-render();
-
-if('serviceWorker' in navigator){
- navigator.serviceWorker.register('sw.js');
-}
 </script>
 
 </body>
