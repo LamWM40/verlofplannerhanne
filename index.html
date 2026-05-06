@@ -9,7 +9,6 @@
 <style>
 body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
 
-/* HEADER */
 header { 
   background:yellow; 
   color:black; 
@@ -19,7 +18,6 @@ header {
   overflow:hidden;
 }
 
-/* achtergrond naam */
 header::after{
   content:"Hanne";
   position:absolute;
@@ -28,7 +26,7 @@ header::after{
   transform:translate(-50%, -50%);
   font-size:60px;
   font-family:cursive;
-  color:#e6d800; /* donkerder geel */
+  color:#e6d800;
   opacity:0.5;
   pointer-events:none;
 }
@@ -38,12 +36,11 @@ header::after{
   margin-top:10px;
 }
 
-/* SAMENVATTING */
 .summary {
   text-align:center;
   padding:10px;
   font-weight:bold;
-  font-size:20px; /* groter */
+  font-size:20px;
 }
 
 .summary-small {
@@ -58,7 +55,6 @@ header::after{
   margin:10px 20px;
 }
 
-/* GRID */
 .container { 
   display:grid; 
   grid-template-columns: 1fr 1fr 1fr; 
@@ -102,14 +98,34 @@ const codes = {
 
 const workDayHours = 8;
 
-// 🔧 maand +3 (tekst voor samenvatting)
+// 🔧 NIEUW: jouw tabel exact toegepast
 function getFutureMonthText(){
   const now = new Date();
-  const currentMonth = now.toLocaleString('nl-NL', { month: 'long' });
-  const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
-  const futureMonth = future.toLocaleString('nl-NL', { month: 'long' });
+  const m = now.getMonth(); // 0 = jan
 
-  return `15 ${currentMonth} = ${futureMonth}`;
+  const months = [
+    'januari','februari','maart','april','mei','juni',
+    'juli','augustus','september','oktober','november','december'
+  ];
+
+  let result = '';
+
+  switch(m){
+    case 0: result = 'april'; break;
+    case 1: result = 'mei'; break;
+    case 2: result = 'juni'; break;
+    case 3: result = 'juli'; break;
+    case 4: result = 'augustus'; break;
+    case 5: result = 'september'; break;
+    case 6: result = 'september'; break;
+    case 7: result = 'september'; break;
+    case 8: result = 'december'; break;
+    case 9: result = 'januari'; break;
+    case 10: result = 'februari'; break;
+    case 11: result = 'maart'; break;
+  }
+
+  return `15 ${months[m]} = ${result}`;
 }
 
 function getCurrentMonthKey(){
@@ -173,7 +189,6 @@ function render(){
   app.appendChild(div);
  });
 
- // 🔧 Samenvatting
  const maandTekst = getFutureMonthText();
 
  summary.innerHTML = `
