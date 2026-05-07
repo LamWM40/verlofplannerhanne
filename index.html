@@ -77,6 +77,7 @@ header::after{
   padding:10px;
 }
 
+/* CARD */
 .card{
   background:#fff;
   padding:12px;
@@ -131,23 +132,6 @@ button:active{
 
 <script>
 
-/////////////////////////////////////////////////////
-// 🔥 S+B PLANNING (VERPLAATST BOVEN CODES)
-/////////////////////////////////////////////////////
-const sbPlanning = {
-  "oktober": ["januari"],
-  "november": ["februari"],
-  "december": ["maart"],
-  "januari": ["april", "mei", "juni", "juli", "augustus"],
-  "juni": ["september"],
-  "juli": ["oktober"],
-  "augustus": ["november"],
-  "september": ["december"]
-};
-
-/////////////////////////////////////////////////////
-// CODES
-/////////////////////////////////////////////////////
 const codes = {
   EL: {name:'Eindeloopbaan', hours:8},
   R: {name:'Overuren', hours:10.5},
@@ -168,7 +152,19 @@ function getRFCText(){
   return `15 ${currentMonth} = ${futureMonth}`;
 }
 
-/* S+B tekst */
+/* 🔥 JOUW S+B PLANNING OBJECT */
+const sbPlanning = {
+  "oktober": ["januari"],
+  "november": ["februari"],
+  "december": ["maart"],
+  "januari": ["april", "mei", "juni", "juli", "augustus"],
+  "juni": ["september"],
+  "juli": ["oktober"],
+  "augustus": ["november"],
+  "september": ["december"]
+};
+
+/* omzetten naar tekst */
 function getSBText(){
 
   const maand = new Date()
@@ -181,6 +177,7 @@ function getSBText(){
   return "Aanvragen: " + lijst.join(", ");
 }
 
+/* storage */
 function getCurrentMonthKey(){
   const d = new Date();
   return d.getFullYear() + '-' + (d.getMonth()+1);
@@ -214,7 +211,7 @@ function minusHalfDay(code){
   render();
 }
 
-/* RENDER */
+/* render */
 function render(){
 
   const data = load();
@@ -266,4 +263,42 @@ function render(){
       ${getRFCText()}
     </div>
 
-    <div class="summary-line"></div
+    <div class="summary-line"></div>
+
+    <div class="summary">
+      Totaal S + B:
+      ${totalSB.toFixed(2)} dagen
+    </div>
+
+    <div class="summary-small">
+      ${getSBText()}
+    </div>
+
+    <div class="summary-line"></div>
+  `;
+}
+
+function update(code,value){
+  const data = load();
+  data[code].hours = parseFloat(value);
+  save(data);
+  render();
+}
+
+function resetCode(code){
+  const data = load();
+  data[code].hours = 0;
+  save(data);
+  render();
+}
+
+render();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js');
+}
+
+</script>
+
+</body>
+</html>
