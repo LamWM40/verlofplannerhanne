@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verlofplanner</title>
+<link rel="manifest" href="manifest.json">
 
 <style>
 body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
@@ -14,7 +15,7 @@ header {
   color:black; 
   padding:20px; 
   text-align:center; 
-  position:relative;
+  position:relative; 
   overflow:hidden;
 }
 
@@ -27,7 +28,7 @@ header::after{
   transform:translate(-50%, -50%);
   font-size:60px;
   font-family:cursive;
-  color:#e6d800; /* donkerder geel */
+  color:#e6d800;
   opacity:0.5;
   pointer-events:none;
 }
@@ -73,9 +74,7 @@ header::after{
 }
 
 input { width:100%; padding:5px; }
-
 button { margin-top:5px; padding:5px; width:100%; }
-
 </style>
 </head>
 
@@ -90,6 +89,22 @@ button { margin-top:5px; padding:5px; width:100%; }
 <div class="container" id="app"></div>
 
 <script>
+// Jouw planningsobject
+const sbPlanning = {
+  "januari": ["april", "mei", "juni", "juli", "augustus"],
+  "februari": [],
+  "maart": [],
+  "april": [],
+  "mei": [],
+  "juni": ["september"],
+  "juli": ["oktober"],
+  "augustus": ["november"],
+  "september": ["december"],
+  "oktober": ["januari"],
+  "november": ["februari"],
+  "december": ["maart"]
+};
+
 const codes = {
  EL: {name:'Eindeloopbaan', hours:8},
  R: {name:'Overuren', hours:10.5},
@@ -99,20 +114,9 @@ const codes = {
  B: {name:'Verlof B', hours:120}
 };
 
-const sbPlanning = {
- "oktober": ["januari"],
- "november": ["februari"],
- "december": ["maart"],
- "januari": ["april", "mei", "juni", "juli", "augustus"],
- "juni": ["september"],
- "juli": ["oktober"],
- "augustus": ["november"],
- "september": ["december"]
-};
-
 const workDayHours = 8;
 
-// 🔧 maand +3 (tekst voor RFC samenvatting)
+// Functie voor de RFC tekst (+3 maanden)
 function getFutureMonthText(){
   const now = new Date();
   const currentMonth = now.toLocaleString('nl-NL', { month: 'long' });
@@ -121,16 +125,19 @@ function getFutureMonthText(){
   return `15 ${currentMonth} = ${futureMonth}`;
 }
 
-// 🔧 SB specifieke tekst op basis van sbPlanning object
+// Functie voor de SB planning tekst
 function getSBPlanningText() {
   const now = new Date();
+  // Zorg voor kleine letters om te matchen met het object
   const currentMonthName = now.toLocaleString('nl-NL', { month: 'long' }).toLowerCase();
   const plannedMonths = sbPlanning[currentMonthName];
   
-  if (plannedMonths) {
-    return `SB-Planning voor: ${plannedMonths.join(', ')}`;
+  if (plannedMonths && plannedMonths.length > 0) {
+    // Maak van de lijst een mooie tekst: "april, mei, juni..."
+    const maandenLijst = plannedMonths.join(', ');
+    return `SB-Planning voor: ${maandenLijst}`;
   } else {
-    return `Geen SB-planning voor deze maand`;
+    return `SB-Planning: Geen data voor ${currentMonthName}`;
   }
 }
 
