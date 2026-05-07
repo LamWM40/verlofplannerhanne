@@ -21,8 +21,8 @@ header{
   color:#000;
   padding:20px;
   text-align:center;
-  position:relative;
   border-bottom:4px solid #000;
+  position:relative;
 }
 
 header::after{
@@ -34,10 +34,9 @@ header::after{
   font-size:60px;
   font-family:cursive;
   opacity:0.25;
-  pointer-events:none;
 }
 
-/* Lijnen (FIX mobiel + zichtbaarheid) */
+/* LINES */
 .header-line{
   border-top:3px solid #000;
   margin-top:12px;
@@ -46,11 +45,11 @@ header::after{
 .summary-line{
   height:4px;
   background:#000;
-  margin:25px 20px; /* 👈 meer ruimte zodat het zichtbaar blijft */
+  margin:25px 20px;
   border-radius:3px;
 }
 
-/* SAMENVATTING */
+/* SUMMARY */
 .summary{
   text-align:center;
   padding:12px;
@@ -91,45 +90,31 @@ input{
   width:100%;
   padding:8px;
   margin-top:6px;
-  box-sizing:border-box;
   border:1px solid #ccc;
   border-radius:8px;
 }
 
-/* KNOPPEN 3D LIGHT */
+/* BUTTONS */
 button{
   margin-top:8px;
   padding:10px;
   width:100%;
   border:none;
   border-radius:10px;
-
   background:linear-gradient(to bottom,#f2f2f2,#d0d0d0);
   font-weight:bold;
-
-  box-shadow:
-    0 4px 0 #9a9a9a,
-    0 6px 10px rgba(0,0,0,0.2);
-
+  box-shadow:0 4px 0 #9a9a9a,0 6px 10px rgba(0,0,0,0.2);
   cursor:pointer;
 }
 
 button:active{
   transform:translateY(3px);
-  box-shadow:
-    0 1px 0 #9a9a9a,
-    0 2px 5px rgba(0,0,0,0.2);
+  box-shadow:0 1px 0 #9a9a9a,0 2px 5px rgba(0,0,0,0.2);
 }
 
-/* mobiel beter */
+/* MOBILE */
 @media(max-width:768px){
-  .container{
-    grid-template-columns:1fr;
-  }
-
-  .summary{
-    font-size:18px;
-  }
+  .container{grid-template-columns:1fr;}
 }
 
 </style>
@@ -148,12 +133,12 @@ button:active{
 <script>
 
 const codes = {
- EL: {name:'Eindeloopbaan', hours:8},
- R: {name:'Overuren', hours:10.5},
- F: {name:'Feestdag', hours:0},
- C: {name:'Compensatie', hours:5.5},
- S: {name:'Verlof', hours:15},
- B: {name:'Verlof B', hours:120}
+  EL: {name:'Eindeloopbaan', hours:8},
+  R: {name:'Overuren', hours:10.5},
+  F: {name:'Feestdag', hours:0},
+  C: {name:'Compensatie', hours:5.5},
+  S: {name:'Verlof', hours:15},
+  B: {name:'Verlof B', hours:120}
 };
 
 const workDayHours = 8;
@@ -167,24 +152,32 @@ function getRFCText(){
   return `15 ${currentMonth} = ${futureMonth}`;
 }
 
-/* S+B planning */
+/* 🔥 JOUW S+B PLANNING OBJECT */
+const sbPlanning = {
+  "oktober": ["januari"],
+  "november": ["februari"],
+  "december": ["maart"],
+  "januari": ["april", "mei", "juni", "juli", "augustus"],
+  "juni": ["september"],
+  "juli": ["oktober"],
+  "augustus": ["november"],
+  "september": ["december"]
+};
+
+/* omzetten naar tekst */
 function getSBText(){
-  const maand = new Date().getMonth();
 
-  const planning = {
-    0: "15 januari = april, mei, juni, juli, augustus",
-    5: "15 juni = september",
-    6: "15 juli = oktober",
-    7: "15 augustus = november",
-    8: "15 september = december",
-    9: "15 oktober = januari",
-    10: "15 november = februari",
-    11: "15 december = maart"
-  };
+  const maand = new Date()
+    .toLocaleString('nl-NL',{month:'long'});
 
-  return planning[maand] || "";
+  const lijst = sbPlanning[maand];
+
+  if(!lijst) return "";
+
+  return "Aanvragen: " + lijst.join(", ");
 }
 
+/* storage */
 function getCurrentMonthKey(){
   const d = new Date();
   return d.getFullYear() + '-' + (d.getMonth()+1);
@@ -218,6 +211,7 @@ function minusHalfDay(code){
   render();
 }
 
+/* render */
 function render(){
 
   const data = load();
@@ -280,10 +274,7 @@ function render(){
       ${getSBText()}
     </div>
 
-    <!-- 👇 extra afstand + duidelijke zichtbare lijn -->
-    <div style="height:20px"></div>
     <div class="summary-line"></div>
-
   `;
 }
 
