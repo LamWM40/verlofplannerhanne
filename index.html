@@ -7,19 +7,23 @@
 <link rel="manifest" href="manifest.json">
 
 <style>
-body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
+body {
+  font-family: Arial;
+  margin:0;
+  padding:0;
+  background:#f4f4f4;
+}
 
 /* HEADER */
-header { 
-  background:yellow; 
-  color:black; 
-  padding:20px; 
-  text-align:center; 
+header {
+  background:yellow;
+  color:black;
+  padding:20px;
+  text-align:center;
   position:relative;
   overflow:hidden;
 }
 
-/* achtergrond naam */
 header::after{
   content:"Hanne";
   position:absolute;
@@ -28,55 +32,61 @@ header::after{
   transform:translate(-50%, -50%);
   font-size:60px;
   font-family:cursive;
-  color:#e6d800; /* donkerder geel */
+  color:#e6d800;
   opacity:0.5;
   pointer-events:none;
 }
 
-.header-line {
+.header-line{
   border-top:2px solid #000;
   margin-top:10px;
 }
 
 /* SAMENVATTING */
-.summary {
+.summary{
   text-align:center;
   padding:10px;
   font-weight:bold;
-  font-size:20px; /* groter */
+  font-size:20px;
 }
 
-.summary-small {
+.summary-small{
   text-align:center;
   font-size:14px;
   margin-top:-5px;
   margin-bottom:10px;
 }
 
-.summary-line {
+.summary-line{
   border-top:1px solid #000;
   margin:10px 20px;
 }
 
 /* GRID */
-.container { 
-  display:grid; 
-  grid-template-columns: 1fr 1fr 1fr; 
-  gap:10px; 
-  padding:10px; 
+.container{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+  padding:10px;
 }
 
-.card { 
-  background:#fff; 
-  padding:10px; 
-  border-radius:10px; 
+.card{
+  background:#fff;
+  padding:10px;
+  border-radius:10px;
   box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
-input { width:100%; padding:5px; }
+input{
+  width:100%;
+  padding:5px;
+}
 
-button { margin-top:5px; padding:5px; width:100%; }
-
+button{
+  margin-top:5px;
+  padding:5px;
+  width:100%;
+}
 </style>
 </head>
 
@@ -91,6 +101,7 @@ button { margin-top:5px; padding:5px; width:100%; }
 <div class="container" id="app"></div>
 
 <script>
+
 const codes = {
  EL: {name:'Eindeloopbaan', hours:8},
  R: {name:'Overuren', hours:10.5},
@@ -102,112 +113,228 @@ const codes = {
 
 const workDayHours = 8;
 
-// 🔧 maand +3 (tekst voor samenvatting)
-function getFutureMonthText(){
+/* RFC maand +3 */
+function getRFCText(){
+
   const now = new Date();
-  const currentMonth = now.toLocaleString('nl-NL', { month: 'long' });
-  const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
-  const futureMonth = future.toLocaleString('nl-NL', { month: 'long' });
+
+  const currentMonth =
+    now.toLocaleString('nl-NL', { month:'long' });
+
+  const future =
+    new Date(now.getFullYear(), now.getMonth()+3, 1);
+
+  const futureMonth =
+    future.toLocaleString('nl-NL', { month:'long' });
 
   return `15 ${currentMonth} = ${futureMonth}`;
 }
 
+/* S+B planning volgens vaste tabel */
+function getSBPlanningText(){
+
+  const maand = new Date().getMonth();
+
+  const planning = {
+
+    0: "15 januari = april, mei, juni, juli, augustus",
+
+    5: "15 juni = september",
+
+    6: "15 juli = oktober",
+
+    7: "15 augustus = november",
+
+    8: "15 september = december",
+
+    9: "15 oktober = januari",
+
+    10: "15 november = februari",
+
+    11: "15 december = maart"
+  };
+
+  return planning[maand] || "";
+}
+
 function getCurrentMonthKey(){
- const d = new Date();
- return d.getFullYear() + '-' + (d.getMonth()+1);
+
+  const d = new Date();
+
+  return d.getFullYear() + '-' + (d.getMonth()+1);
 }
 
 function load(){
- const saved = JSON.parse(localStorage.getItem('data'));
- const monthKey = getCurrentMonthKey();
 
- if(!saved || saved.month !== monthKey){
-  const newData = { month: monthKey, values: JSON.parse(JSON.stringify(codes)) };
-  newData.values.EL.hours = 8;
-  localStorage.setItem('data', JSON.stringify(newData));
-  return newData.values;
- }
- return saved.values;
+  const saved =
+    JSON.parse(localStorage.getItem('data'));
+
+  const monthKey = getCurrentMonthKey();
+
+  if(!saved || saved.month !== monthKey){
+
+    const newData = {
+      month: monthKey,
+      values: JSON.parse(JSON.stringify(codes))
+    };
+
+    newData.values.EL.hours = 8;
+
+    localStorage.setItem(
+      'data',
+      JSON.stringify(newData)
+    );
+
+    return newData.values;
+  }
+
+  return saved.values;
 }
 
 function save(values){
- const monthKey = getCurrentMonthKey();
- localStorage.setItem('data', JSON.stringify({ month: monthKey, values }));
+
+  const monthKey = getCurrentMonthKey();
+
+  localStorage.setItem(
+    'data',
+    JSON.stringify({
+      month: monthKey,
+      values
+    })
+  );
 }
 
 function minusHalfDay(code){
- const data = load();
- data[code].hours = Math.max(0, data[code].hours - 4);
- save(data);
- render();
+
+  const data = load();
+
+  data[code].hours =
+    Math.max(0, data[code].hours - 4);
+
+  save(data);
+
+  render();
 }
 
 function render(){
- const data = load();
- const app = document.getElementById('app');
- const summary = document.getElementById('summary');
 
- app.innerHTML='';
+  const data = load();
 
- let totalRFC = 0;
- let totalSB = 0;
+  const app =
+    document.getElementById('app');
 
- Object.keys(data).forEach(code=>{
-  const item = data[code];
-  const days = (item.hours / workDayHours);
+  const summary =
+    document.getElementById('summary');
 
-  if(['R','F','C'].includes(code)) totalRFC += days;
-  if(['S','B'].includes(code)) totalSB += days;
+  app.innerHTML='';
 
-  const div = document.createElement('div');
-  div.className='card';
-  div.innerHTML = `
-   <h3>${code}</h3>
-   <p>${item.name}</p>
-   <p>Uren: ${item.hours}</p>
-   <p>Dagen: ${days.toFixed(2)}</p>
-   <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
-   <button onclick="minusHalfDay('${code}')">-1/2 dag</button>
-   <button onclick="resetCode('${code}')">Reset</button>
+  let totalRFC = 0;
+  let totalSB = 0;
+
+  Object.keys(data).forEach(code=>{
+
+    const item = data[code];
+
+    const days =
+      (item.hours / workDayHours);
+
+    if(['R','F','C'].includes(code))
+      totalRFC += days;
+
+    if(['S','B'].includes(code))
+      totalSB += days;
+
+    const div =
+      document.createElement('div');
+
+    div.className='card';
+
+    div.innerHTML = `
+      <h3>${code}</h3>
+      <p>${item.name}</p>
+      <p>Uren: ${item.hours}</p>
+      <p>Dagen: ${days.toFixed(2)}</p>
+
+      <input
+        type="number"
+        value="${item.hours}"
+        onchange="update('${code}', this.value)"
+      >
+
+      <button onclick="minusHalfDay('${code}')">
+        -1/2 dag
+      </button>
+
+      <button onclick="resetCode('${code}')">
+        Reset
+      </button>
+    `;
+
+    app.appendChild(div);
+  });
+
+  const rfcText = getRFCText();
+
+  const sbText = getSBPlanningText();
+
+  summary.innerHTML = `
+
+    <div class="summary-line"></div>
+
+    <div class="summary">
+      Totaal R + F + C:
+      ${totalRFC.toFixed(2)} dagen
+    </div>
+
+    <div class="summary-small">
+      ${rfcText}
+    </div>
+
+    <div class="summary-line"></div>
+
+    <div class="summary">
+      Totaal S + B:
+      ${totalSB.toFixed(2)} dagen
+    </div>
+
+    <div class="summary-small">
+      ${sbText}
+    </div>
+
+    <div class="summary-line"></div>
   `;
-  app.appendChild(div);
- });
-
- // 🔧 Samenvatting
- const maandTekst = getFutureMonthText();
-
- summary.innerHTML = `
-   <div class="summary-line"></div>
-   <div class="summary">Totaal R + F + C: ${totalRFC.toFixed(2)} dagen</div>
-   <div class="summary-small">${maandTekst}</div>
-
-   <div class="summary-line"></div>
-   <div class="summary">Totaal S + B: ${totalSB.toFixed(2)} dagen</div>
-   <div class="summary-small">${maandTekst}</div>
-
-   <div class="summary-line"></div>
- `;
 }
 
 function update(code, value){
- const data = load();
- data[code].hours = parseFloat(value);
- save(data);
- render();
+
+  const data = load();
+
+  data[code].hours =
+    parseFloat(value);
+
+  save(data);
+
+  render();
 }
 
 function resetCode(code){
- const data = load();
- data[code].hours = 0;
- save(data);
- render();
+
+  const data = load();
+
+  data[code].hours = 0;
+
+  save(data);
+
+  render();
 }
 
 render();
 
 if('serviceWorker' in navigator){
- navigator.serviceWorker.register('sw.js');
+
+  navigator.serviceWorker.register('sw.js');
 }
+
 </script>
 
 </body>
