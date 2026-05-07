@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verlofplanner 3.0</title>
+<title>Verlofplanner 4.0</title>
 <link rel="manifest" href="manifest.json">
 
 <style>
@@ -11,13 +11,13 @@
   --bg-color: #f0f2f5;
   --card-bg: #ffffff;
   --primary-yellow: #ffeb3b;
-  --accent-shadow: rgba(0,0,0,0.1);
-  --btn-shadow: 3px 3px 6px #bebebe, -3px -3px 6px #ffffff;
+  --text-black: #1a1a1a;
+  --btn-shadow: 4px 4px 8px #bebebe, -4px -4px 8px #ffffff;
   --btn-pressed: inset 2px 2px 5px #bebebe, inset -2px -2px 5px #ffffff;
 }
 
 body { 
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+  font-family: 'Segoe UI', Arial, sans-serif; 
   margin:0; 
   padding:0; 
   background: var(--bg-color); 
@@ -28,11 +28,10 @@ body {
 header { 
   background: var(--primary-yellow); 
   color:black; 
-  padding:25px 20px; 
+  padding:20px; 
   text-align:center; 
   position:relative; 
-  overflow:hidden;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 header::after{
@@ -41,54 +40,61 @@ header::after{
   top:50%;
   left:50%;
   transform:translate(-50%, -50%);
-  font-size:70px;
+  font-size:60px;
   font-family: 'Brush Script MT', cursive;
-  color:#e6d800;
-  opacity:0.3;
+  color:#000;
+  opacity:0.05;
   pointer-events:none;
 }
 
-.header-line {
-  border-top:2px solid #000;
-  margin-top:10px;
-  opacity: 0.2;
-}
-
-/* SAMENVATTING */
+/* SAMENVATTING (GROTER) */
 .summary-container {
   background: white;
   margin: 15px;
-  border-radius: 15px;
-  padding: 10px 5px;
+  border-radius: 20px;
+  padding: 20px 10px;
   box-shadow: var(--btn-shadow);
+  border: 1px solid #eee;
 }
 
-.summary {
-  text-align:center;
-  padding:5px;
-  font-weight:bold;
-  font-size:18px;
-  color: #222;
+.summary-item {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.summary-title {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.summary-days {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--text-black);
+  display: block;
 }
 
 .summary-small {
-  text-align:center;
-  font-size:13px;
-  color: #666;
-  margin-bottom:10px;
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
 }
 
 .summary-line {
-  border-top:1px solid #eee;
-  margin:10px 40px;
+  border-top: 1px solid #f0f0f0;
+  margin: 15px 30px;
 }
 
-/* GRID */
+/* GRID (2 KOLOMMEN, 3 RIJEN) */
 .container { 
   display:grid; 
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+  grid-template-columns: 1fr 1fr; /* Exact twee kolommen */
   gap:15px; 
   padding:15px; 
+  margin-bottom: 30px;
 }
 
 .card { 
@@ -97,48 +103,68 @@ header::after{
   border-radius:20px; 
   box-shadow: var(--btn-shadow);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-.card h3 { margin: 0 0 5px 0; color: #fbc02d; font-size: 22px; }
-.card p { margin: 2px 0; font-size: 13px; color: #555; }
-.card .days-label { font-weight: bold; font-size: 16px; color: #000; margin: 5px 0; }
+.card h3 { 
+  margin: 0; 
+  color: var(--text-black); /* Terug naar zwart */
+  font-size: 24px; 
+  font-weight: 800;
+}
+
+.card p.sub-name { 
+  margin: 2px 0 10px 0; 
+  font-size: 11px; 
+  color: #888; 
+  height: 14px;
+}
+
+.card .days-count { 
+  font-weight: bold; 
+  font-size: 18px; 
+  color: #333; 
+  margin-bottom: 10px;
+}
 
 input { 
-  width: 80%; 
+  width: 70%; 
   padding: 8px; 
-  margin: 10px 0; 
   border: none; 
   border-radius: 10px; 
   background: #f0f2f5;
-  box-shadow: inset 2px 2px 5px #bcbcbc, inset -2px -2px 5px #ffffff;
+  box-shadow: inset 2px 2px 4px #bcbcbc, inset -2px -2px 4px #ffffff;
   text-align: center;
   font-size: 16px;
+  margin: 0 auto 10px;
 }
 
 /* 3D BUTTONS */
 button { 
-  margin-top:10px; 
-  padding:12px 5px; 
-  width:100%; 
+  padding: 10px 5px; 
+  width: 100%; 
   border: none;
   border-radius: 12px;
   background: #f0f2f5;
   font-weight: bold;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   box-shadow: var(--btn-shadow);
-  transition: all 0.2s ease;
+  transition: transform 0.1s;
   color: #444;
+  margin-bottom: 8px;
   -webkit-tap-highlight-color: transparent;
 }
 
 button:active {
   box-shadow: var(--btn-pressed);
-  transform: translateY(2px);
+  transform: scale(0.95);
 }
 
-.btn-reset { color: #d32f2f; }
-.btn-minus { color: #1976d2; }
+.btn-reset { color: #cc0000; margin-bottom: 0; }
+.btn-minus { color: #0056b3; }
 
 </style>
 </head>
@@ -146,12 +172,14 @@ button:active {
 <body>
 
 <header>
-<h2>Verlofplanner</h2>
-<div class="header-line"></div>
+  <h2 style="margin:0; font-size: 22px;">Verlofplanner</h2>
 </header>
 
-<div class="summary-container" id="summary"></div>
-<div class="container" id="app"></div>
+<div class="summary-container" id="summary">
+  </div>
+
+<div class="container" id="app">
+  </div>
 
 <script>
 const sbPlanning = {
@@ -178,7 +206,7 @@ function getFutureMonthText(){
   const currentMonth = now.toLocaleString('nl-NL', { month: 'long' });
   const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
   const futureMonth = future.toLocaleString('nl-NL', { month: 'long' });
-  return `15 ${currentMonth} = ${futureMonth}`;
+  return `Deadline: 15 ${currentMonth} voor ${futureMonth}`;
 }
 
 function getSBPlanningText() {
@@ -186,9 +214,9 @@ function getSBPlanningText() {
   const currentMonthName = now.toLocaleString('nl-NL', { month: 'long' }).toLowerCase();
   const plannedMonths = sbPlanning[currentMonthName];
   if (plannedMonths && plannedMonths.length > 0) {
-    return `SB-Planning voor: ${plannedMonths.join(', ')}`;
+    return `SB gepland voor: ${plannedMonths.join(', ')}`;
   } else {
-    return `SB-Planning: Geen data voor ${currentMonthName}`;
+    return `SB: Geen planning voor ${currentMonthName}`;
   }
 }
 
@@ -252,22 +280,32 @@ function render(){
   const div = document.createElement('div');
   div.className='card';
   div.innerHTML = `
-   <h3>${code}</h3>
-   <p>${item.name}</p>
-   <div class="days-label">${days.toFixed(2)} dgn</div>
-   <input type="number" step="0.5" value="${item.hours}" onchange="update('${code}', this.value)">
-   <button class="btn-minus" onclick="minusHalfDay('${code}')">➖ ½ dag</button>
-   <button class="btn-reset" onclick="resetCode('${code}')">🔄 Reset</button>
+   <div>
+     <h3>${code}</h3>
+     <p class="sub-name">${item.name}</p>
+     <div class="days-count">${days.toFixed(2)} <span style="font-size:12px; font-weight:normal;">dgn</span></div>
+   </div>
+   <div>
+     <input type="number" step="0.5" value="${item.hours}" onchange="update('${code}', this.value)">
+     <button class="btn-minus" onclick="minusHalfDay('${code}')">➖ ½ dag</button>
+     <button class="btn-reset" onclick="resetCode('${code}')">🔄 Reset</button>
+   </div>
   `;
   app.appendChild(div);
  });
 
  summary.innerHTML = `
-   <div class="summary">Totaal R+F+C: ${totalRFC.toFixed(2)} dgn</div>
-   <div class="summary-small">${getFutureMonthText()}</div>
+   <div class="summary-item">
+     <div class="summary-title">Totaal R + F + C</div>
+     <div class="summary-days">${totalRFC.toFixed(2)} <span style="font-size:16px;">DAGEN</span></div>
+     <div class="summary-small">${getFutureMonthText()}</div>
+   </div>
    <div class="summary-line"></div>
-   <div class="summary">Totaal S+B: ${totalSB.toFixed(2)} dgn</div>
-   <div class="summary-small">${getSBPlanningText()}</div>
+   <div class="summary-item">
+     <div class="summary-title">Totaal S + B</div>
+     <div class="summary-days">${totalSB.toFixed(2)} <span style="font-size:16px;">DAGEN</span></div>
+     <div class="summary-small">${getSBPlanningText()}</div>
+   </div>
  `;
 }
 
