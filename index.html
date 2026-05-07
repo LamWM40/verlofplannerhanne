@@ -3,78 +3,143 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verlofplanner</title>
+<title>Verlofplanner 3.0</title>
 <link rel="manifest" href="manifest.json">
 
 <style>
-body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
+:root {
+  --bg-color: #f0f2f5;
+  --card-bg: #ffffff;
+  --primary-yellow: #ffeb3b;
+  --accent-shadow: rgba(0,0,0,0.1);
+  --btn-shadow: 3px 3px 6px #bebebe, -3px -3px 6px #ffffff;
+  --btn-pressed: inset 2px 2px 5px #bebebe, inset -2px -2px 5px #ffffff;
+}
+
+body { 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+  margin:0; 
+  padding:0; 
+  background: var(--bg-color); 
+  color: #333;
+}
 
 /* HEADER */
 header { 
-  background:yellow; 
+  background: var(--primary-yellow); 
   color:black; 
-  padding:20px; 
+  padding:25px 20px; 
   text-align:center; 
   position:relative; 
   overflow:hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* achtergrond naam */
 header::after{
   content:"Hanne";
   position:absolute;
   top:50%;
   left:50%;
   transform:translate(-50%, -50%);
-  font-size:60px;
-  font-family:cursive;
+  font-size:70px;
+  font-family: 'Brush Script MT', cursive;
   color:#e6d800;
-  opacity:0.5;
+  opacity:0.3;
   pointer-events:none;
 }
 
 .header-line {
   border-top:2px solid #000;
   margin-top:10px;
+  opacity: 0.2;
 }
 
 /* SAMENVATTING */
+.summary-container {
+  background: white;
+  margin: 15px;
+  border-radius: 15px;
+  padding: 10px 5px;
+  box-shadow: var(--btn-shadow);
+}
+
 .summary {
   text-align:center;
-  padding:10px;
+  padding:5px;
   font-weight:bold;
-  font-size:20px;
+  font-size:18px;
+  color: #222;
 }
 
 .summary-small {
   text-align:center;
-  font-size:14px;
-  margin-top:-5px;
+  font-size:13px;
+  color: #666;
   margin-bottom:10px;
 }
 
 .summary-line {
-  border-top:1px solid #000;
-  margin:10px 20px;
+  border-top:1px solid #eee;
+  margin:10px 40px;
 }
 
 /* GRID */
 .container { 
   display:grid; 
-  grid-template-columns: 1fr 1fr 1fr; 
-  gap:10px; 
-  padding:10px; 
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+  gap:15px; 
+  padding:15px; 
 }
 
 .card { 
-  background:#fff; 
-  padding:10px; 
-  border-radius:10px; 
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+  background: var(--card-bg); 
+  padding:15px; 
+  border-radius:20px; 
+  box-shadow: var(--btn-shadow);
+  text-align: center;
 }
 
-input { width:100%; padding:5px; }
-button { margin-top:5px; padding:5px; width:100%; }
+.card h3 { margin: 0 0 5px 0; color: #fbc02d; font-size: 22px; }
+.card p { margin: 2px 0; font-size: 13px; color: #555; }
+.card .days-label { font-weight: bold; font-size: 16px; color: #000; margin: 5px 0; }
+
+input { 
+  width: 80%; 
+  padding: 8px; 
+  margin: 10px 0; 
+  border: none; 
+  border-radius: 10px; 
+  background: #f0f2f5;
+  box-shadow: inset 2px 2px 5px #bcbcbc, inset -2px -2px 5px #ffffff;
+  text-align: center;
+  font-size: 16px;
+}
+
+/* 3D BUTTONS */
+button { 
+  margin-top:10px; 
+  padding:12px 5px; 
+  width:100%; 
+  border: none;
+  border-radius: 12px;
+  background: #f0f2f5;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: var(--btn-shadow);
+  transition: all 0.2s ease;
+  color: #444;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active {
+  box-shadow: var(--btn-pressed);
+  transform: translateY(2px);
+}
+
+.btn-reset { color: #d32f2f; }
+.btn-minus { color: #1976d2; }
+
 </style>
 </head>
 
@@ -85,24 +150,16 @@ button { margin-top:5px; padding:5px; width:100%; }
 <div class="header-line"></div>
 </header>
 
-<div id="summary"></div>
+<div class="summary-container" id="summary"></div>
 <div class="container" id="app"></div>
 
 <script>
-// Jouw planningsobject
 const sbPlanning = {
   "januari": ["april", "mei", "juni", "juli", "augustus"],
-  "februari": [],
-  "maart": [],
-  "april": [],
-  "mei": [],
-  "juni": ["september"],
-  "juli": ["oktober"],
-  "augustus": ["november"],
-  "september": ["december"],
-  "oktober": ["januari"],
-  "november": ["februari"],
-  "december": ["maart"]
+  "februari": [], "maart": [], "april": [], "mei": [],
+  "juni": ["september"], "juli": ["oktober"], "augustus": ["november"],
+  "september": ["december"], "oktober": ["januari"],
+  "november": ["februari"], "december": ["maart"]
 };
 
 const codes = {
@@ -116,7 +173,6 @@ const codes = {
 
 const workDayHours = 8;
 
-// Functie voor de RFC tekst (+3 maanden)
 function getFutureMonthText(){
   const now = new Date();
   const currentMonth = now.toLocaleString('nl-NL', { month: 'long' });
@@ -125,17 +181,12 @@ function getFutureMonthText(){
   return `15 ${currentMonth} = ${futureMonth}`;
 }
 
-// Functie voor de SB planning tekst
 function getSBPlanningText() {
   const now = new Date();
-  // Zorg voor kleine letters om te matchen met het object
   const currentMonthName = now.toLocaleString('nl-NL', { month: 'long' }).toLowerCase();
   const plannedMonths = sbPlanning[currentMonthName];
-  
   if (plannedMonths && plannedMonths.length > 0) {
-    // Maak van de lijst een mooie tekst: "april, mei, juni..."
-    const maandenLijst = plannedMonths.join(', ');
-    return `SB-Planning voor: ${maandenLijst}`;
+    return `SB-Planning voor: ${plannedMonths.join(', ')}`;
   } else {
     return `SB-Planning: Geen data voor ${currentMonthName}`;
   }
@@ -149,10 +200,8 @@ function getCurrentMonthKey(){
 function load(){
  const saved = JSON.parse(localStorage.getItem('data'));
  const monthKey = getCurrentMonthKey();
-
  if(!saved || saved.month !== monthKey){
   const newData = { month: monthKey, values: JSON.parse(JSON.stringify(codes)) };
-  newData.values.EL.hours = 8;
   localStorage.setItem('data', JSON.stringify(newData));
   return newData.values;
  }
@@ -164,63 +213,16 @@ function save(values){
  localStorage.setItem('data', JSON.stringify({ month: monthKey, values }));
 }
 
-function minusHalfDay(code){
+function update(code, value){
  const data = load();
- data[code].hours = Math.max(0, data[code].hours - 4);
+ data[code].hours = parseFloat(value) || 0;
  save(data);
  render();
 }
 
-function render(){
+function minusHalfDay(code){
  const data = load();
- const app = document.getElementById('app');
- const summary = document.getElementById('summary');
-
- app.innerHTML='';
-
- let totalRFC = 0;
- let totalSB = 0;
-
- Object.keys(data).forEach(code=>{
-  const item = data[code];
-  const days = (item.hours / workDayHours);
-
-  if(['R','F','C'].includes(code)) totalRFC += days;
-  if(['S','B'].includes(code)) totalSB += days;
-
-  const div = document.createElement('div');
-  div.className='card';
-  div.innerHTML = `
-   <h3>${code}</h3>
-   <p>${item.name}</p>
-   <p>Uren: ${item.hours}</p>
-   <p>Dagen: ${days.toFixed(2)}</p>
-   <input type="number" value="${item.hours}" onchange="update('${code}', this.value)">
-   <button onclick="minusHalfDay('${code}')">-1/2 dag</button>
-   <button onclick="resetCode('${code}')">Reset</button>
-  `;
-  app.appendChild(div);
- });
-
- const maandTekstRFC = getFutureMonthText();
- const sbTekst = getSBPlanningText();
-
- summary.innerHTML = `
-   <div class="summary-line"></div>
-   <div class="summary">Totaal R + F + C: ${totalRFC.toFixed(2)} dagen</div>
-   <div class="summary-small">${maandTekstRFC}</div>
-
-   <div class="summary-line"></div>
-   <div class="summary">Totaal S + B: ${totalSB.toFixed(2)} dagen</div>
-   <div class="summary-small">${sbTekst}</div>
-
-   <div class="summary-line"></div>
- `;
-}
-
-function update(code, value){
- const data = load();
- data[code].hours = parseFloat(value);
+ data[code].hours = Math.max(0, data[code].hours - 4);
  save(data);
  render();
 }
@@ -232,11 +234,45 @@ function resetCode(code){
  render();
 }
 
-render();
+function render(){
+ const data = load();
+ const app = document.getElementById('app');
+ const summary = document.getElementById('summary');
+ app.innerHTML='';
 
-if('serviceWorker' in navigator){
- navigator.serviceWorker.register('sw.js');
+ let totalRFC = 0;
+ let totalSB = 0;
+
+ Object.keys(data).forEach(code=>{
+  const item = data[code];
+  const days = (item.hours / workDayHours);
+  if(['R','F','C'].includes(code)) totalRFC += days;
+  if(['S','B'].includes(code)) totalSB += days;
+
+  const div = document.createElement('div');
+  div.className='card';
+  div.innerHTML = `
+   <h3>${code}</h3>
+   <p>${item.name}</p>
+   <div class="days-label">${days.toFixed(2)} dgn</div>
+   <input type="number" step="0.5" value="${item.hours}" onchange="update('${code}', this.value)">
+   <button class="btn-minus" onclick="minusHalfDay('${code}')">➖ ½ dag</button>
+   <button class="btn-reset" onclick="resetCode('${code}')">🔄 Reset</button>
+  `;
+  app.appendChild(div);
+ });
+
+ summary.innerHTML = `
+   <div class="summary">Totaal R+F+C: ${totalRFC.toFixed(2)} dgn</div>
+   <div class="summary-small">${getFutureMonthText()}</div>
+   <div class="summary-line"></div>
+   <div class="summary">Totaal S+B: ${totalSB.toFixed(2)} dgn</div>
+   <div class="summary-small">${getSBPlanningText()}</div>
+ `;
 }
+
+render();
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
 </script>
 
 </body>
