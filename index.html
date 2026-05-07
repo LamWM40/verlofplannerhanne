@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verlofplanner</title>
-
 <link rel="manifest" href="manifest.json">
 
 <style>
@@ -17,7 +16,6 @@ body{
 }
 
 /* HEADER */
-
 header{
   background:yellow;
   color:black;
@@ -27,8 +25,6 @@ header{
   overflow:hidden;
   border-bottom:3px solid #000;
 }
-
-/* achtergrond tekst */
 
 header::after{
   content:"Hanne";
@@ -43,14 +39,18 @@ header::after{
   pointer-events:none;
 }
 
+/* LIJNEN */
 .header-line{
   border-top:3px solid #000;
   margin-top:15px;
-  width:100%;
+}
+
+.summary-line{
+  border-top:3px solid #000;
+  margin:15px 20px;
 }
 
 /* SAMENVATTING */
-
 .summary{
   text-align:center;
   padding:10px;
@@ -65,21 +65,13 @@ header::after{
   margin-bottom:10px;
 }
 
-.summary-line{
-  border-top:2px solid #444;
-  margin:15px 20px;
-}
-
 /* GRID */
-
 .container{
   display:grid;
   grid-template-columns:1fr 1fr 1fr;
   gap:10px;
   padding:10px;
 }
-
-/* KAARTEN */
 
 .card{
   background:#fff;
@@ -89,7 +81,6 @@ header::after{
 }
 
 /* INPUT */
-
 input{
   width:100%;
   padding:8px;
@@ -98,41 +89,23 @@ input{
 }
 
 /* 3D KNOPPEN */
-
 button{
   margin-top:8px;
   padding:10px;
   width:100%;
-
   border:none;
   border-radius:10px;
 
-  background:linear-gradient(
-    to bottom,
-    #f2f2f2,
-    #cfcfcf
-  );
-
-  color:#000;
+  background:linear-gradient(to bottom,#f2f2f2,#cfcfcf);
   font-weight:bold;
 
-  box-shadow:
-    0 4px 0 #9a9a9a,
-    0 6px 10px rgba(0,0,0,0.2);
-
+  box-shadow:0 4px 0 #9a9a9a, 0 6px 10px rgba(0,0,0,0.2);
   cursor:pointer;
-
-  transition:all 0.1s ease;
 }
-
-/* knop indruk effect */
 
 button:active{
   transform:translateY(3px);
-
-  box-shadow:
-    0 1px 0 #9a9a9a,
-    0 2px 5px rgba(0,0,0,0.2);
+  box-shadow:0 1px 0 #9a9a9a, 0 2px 5px rgba(0,0,0,0.2);
 }
 
 </style>
@@ -141,211 +114,89 @@ button:active{
 <body>
 
 <header>
-  <h2>Verlofplanner</h2>
-  <div class="header-line"></div>
+<h2>Verlofplanner</h2>
+<div class="header-line"></div>
 </header>
 
 <div id="summary"></div>
-
 <div class="container" id="app"></div>
 
 <script>
 
-/* CODES */
-
 const codes = {
-
-  EL: {
-    name:'Eindeloopbaan',
-    hours:8
-  },
-
-  R: {
-    name:'Overuren',
-    hours:10.5
-  },
-
-  F: {
-    name:'Feestdag',
-    hours:0
-  },
-
-  C: {
-    name:'Compensatie',
-    hours:5.5
-  },
-
-  S: {
-    name:'Verlof',
-    hours:15
-  },
-
-  B: {
-    name:'Verlof B',
-    hours:120
-  }
+ EL: {name:'Eindeloopbaan', hours:8},
+ R: {name:'Overuren', hours:10.5},
+ F: {name:'Feestdag', hours:0},
+ C: {name:'Compensatie', hours:5.5},
+ S: {name:'Verlof', hours:15},
+ B: {name:'Verlof B', hours:120}
 };
 
 const workDayHours = 8;
 
-/* RFC maand +3 */
-
 function getRFCText(){
-
   const now = new Date();
-
-  const currentMonth =
-    now.toLocaleString('nl-NL', {
-      month:'long'
-    });
-
-  const future =
-    new Date(
-      now.getFullYear(),
-      now.getMonth()+3,
-      1
-    );
-
-  const futureMonth =
-    future.toLocaleString('nl-NL', {
-      month:'long'
-    });
-
+  const currentMonth = now.toLocaleString('nl-NL',{month:'long'});
+  const future = new Date(now.getFullYear(),now.getMonth()+3,1);
+  const futureMonth = future.toLocaleString('nl-NL',{month:'long'});
   return `15 ${currentMonth} = ${futureMonth}`;
 }
 
-/* S+B planning */
-
-function getSBPlanningText(){
-
+function getSBText(){
   const maand = new Date().getMonth();
 
   const planning = {
-
-    0:
-    "15 januari = april, mei, juni, juli, augustus",
-
-    5:
-    "15 juni = september",
-
-    6:
-    "15 juli = oktober",
-
-    7:
-    "15 augustus = november",
-
-    8:
-    "15 september = december",
-
-    9:
-    "15 oktober = januari",
-
-    10:
-    "15 november = februari",
-
-    11:
-    "15 december = maart"
+    0: "15 januari = april, mei, juni, juli, augustus",
+    5: "15 juni = september",
+    6: "15 juli = oktober",
+    7: "15 augustus = november",
+    8: "15 september = december",
+    9: "15 oktober = januari",
+    10: "15 november = februari",
+    11: "15 december = maart"
   };
 
   return planning[maand] || "";
 }
 
-/* maand sleutel */
-
 function getCurrentMonthKey(){
-
   const d = new Date();
-
-  return d.getFullYear() +
-    '-' +
-    (d.getMonth()+1);
+  return d.getFullYear() + '-' + (d.getMonth()+1);
 }
 
-/* laden */
-
 function load(){
+  const saved = JSON.parse(localStorage.getItem('data'));
+  const monthKey = getCurrentMonthKey();
 
-  const saved =
-    JSON.parse(
-      localStorage.getItem('data')
-    );
-
-  const monthKey =
-    getCurrentMonthKey();
-
-  if(
-    !saved ||
-    saved.month !== monthKey
-  ){
-
+  if(!saved || saved.month !== monthKey){
     const newData = {
-
       month: monthKey,
-
-      values:
-      JSON.parse(
-        JSON.stringify(codes)
-      )
+      values: JSON.parse(JSON.stringify(codes))
     };
-
     newData.values.EL.hours = 8;
-
-    localStorage.setItem(
-      'data',
-      JSON.stringify(newData)
-    );
-
+    localStorage.setItem('data', JSON.stringify(newData));
     return newData.values;
   }
-
   return saved.values;
 }
 
-/* opslaan */
-
 function save(values){
-
-  const monthKey =
-    getCurrentMonthKey();
-
-  localStorage.setItem(
-    'data',
-
-    JSON.stringify({
-      month: monthKey,
-      values
-    })
-  );
+  const monthKey = getCurrentMonthKey();
+  localStorage.setItem('data', JSON.stringify({month:monthKey,values}));
 }
-
-/* halve dag */
 
 function minusHalfDay(code){
-
   const data = load();
-
-  data[code].hours =
-    Math.max(
-      0,
-      data[code].hours - 4
-    );
-
+  data[code].hours = Math.max(0,data[code].hours-4);
   save(data);
-
   render();
 }
-
-/* render */
 
 function render(){
 
   const data = load();
-
-  const app =
-    document.getElementById('app');
-
-  const summary =
-    document.getElementById('summary');
+  const app = document.getElementById('app');
+  const summary = document.getElementById('summary');
 
   app.innerHTML='';
 
@@ -355,83 +206,31 @@ function render(){
   Object.keys(data).forEach(code=>{
 
     const item = data[code];
+    const days = item.hours/workDayHours;
 
-    const days =
-      item.hours / workDayHours;
+    if(['R','F','C'].includes(code)) totalRFC += days;
+    if(['S','B'].includes(code)) totalSB += days;
 
-    if(
-      ['R','F','C']
-      .includes(code)
-    ){
-      totalRFC += days;
-    }
-
-    if(
-      ['S','B']
-      .includes(code)
-    ){
-      totalSB += days;
-    }
-
-    const div =
-      document.createElement('div');
+    const div = document.createElement('div');
 
     div.className='card';
 
-    div.innerHTML = `
-
+    div.innerHTML=`
       <h3>${code}</h3>
-
       <p>${item.name}</p>
+      <p>Uren: ${item.hours}</p>
+      <p>Dagen: ${days.toFixed(2)}</p>
 
-      <p>
-        Uren:
-        ${item.hours}
-      </p>
+      <input type="number" value="${item.hours}" onchange="update('${code}',this.value)">
 
-      <p>
-        Dagen:
-        ${days.toFixed(2)}
-      </p>
-
-      <input
-        type="number"
-        value="${item.hours}"
-        onchange="
-          update(
-            '${code}',
-            this.value
-          )
-        "
-      >
-
-      <button
-        onclick="
-          minusHalfDay('${code}')
-        "
-      >
-        -1/2 dag
-      </button>
-
-      <button
-        onclick="
-          resetCode('${code}')
-        "
-      >
-        Reset
-      </button>
+      <button onclick="minusHalfDay('${code}')">-1/2 dag</button>
+      <button onclick="resetCode('${code}')">Reset</button>
     `;
 
     app.appendChild(div);
   });
 
-  const rfcText =
-    getRFCText();
-
-  const sbText =
-    getSBPlanningText();
-
-  summary.innerHTML = `
+  summary.innerHTML=`
 
     <div class="summary-line"></div>
 
@@ -441,7 +240,7 @@ function render(){
     </div>
 
     <div class="summary-small">
-      ${rfcText}
+      ${getRFCText()}
     </div>
 
     <div class="summary-line"></div>
@@ -452,49 +251,32 @@ function render(){
     </div>
 
     <div class="summary-small">
-      ${sbText}
+      ${getSBText()}
     </div>
 
+    <!-- ENIGE AANPASSING: extra lijn hier -->
     <div class="summary-line"></div>
   `;
 }
 
-/* aanpassen */
-
-function update(code, value){
-
+function update(code,value){
   const data = load();
-
-  data[code].hours =
-    parseFloat(value);
-
+  data[code].hours = parseFloat(value);
   save(data);
-
   render();
 }
 
-/* reset */
-
 function resetCode(code){
-
   const data = load();
-
   data[code].hours = 0;
-
   save(data);
-
   render();
 }
 
 render();
 
-/* SERVICE WORKER */
-
 if('serviceWorker' in navigator){
-
-  navigator
-    .serviceWorker
-    .register('sw.js');
+  navigator.serviceWorker.register('sw.js');
 }
 
 </script>
