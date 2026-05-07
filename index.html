@@ -4,25 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verlofplanner</title>
+
 <link rel="manifest" href="manifest.json">
 
 <style>
-body {
-  font-family: Arial;
+
+body{
+  font-family:Arial;
   margin:0;
   padding:0;
   background:#f4f4f4;
 }
 
 /* HEADER */
-header {
+
+header{
   background:yellow;
   color:black;
   padding:20px;
   text-align:center;
   position:relative;
   overflow:hidden;
+  border-bottom:3px solid #000;
 }
+
+/* achtergrond tekst */
 
 header::after{
   content:"Hanne";
@@ -32,17 +38,19 @@ header::after{
   transform:translate(-50%, -50%);
   font-size:60px;
   font-family:cursive;
-  color:#e6d800;
-  opacity:0.5;
+  color:#d6c800;
+  opacity:0.4;
   pointer-events:none;
 }
 
 .header-line{
-  border-top:2px solid #000;
-  margin-top:10px;
+  border-top:3px solid #000;
+  margin-top:15px;
+  width:100%;
 }
 
 /* SAMENVATTING */
+
 .summary{
   text-align:center;
   padding:10px;
@@ -58,17 +66,20 @@ header::after{
 }
 
 .summary-line{
-  border-top:1px solid #000;
-  margin:10px 20px;
+  border-top:2px solid #444;
+  margin:15px 20px;
 }
 
 /* GRID */
+
 .container{
   display:grid;
   grid-template-columns:1fr 1fr 1fr;
   gap:10px;
   padding:10px;
 }
+
+/* KAARTEN */
 
 .card{
   background:#fff;
@@ -77,105 +88,204 @@ header::after{
   box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
+/* INPUT */
+
 input{
   width:100%;
-  padding:5px;
+  padding:8px;
+  margin-top:5px;
+  box-sizing:border-box;
 }
 
+/* 3D KNOPPEN */
+
 button{
-  margin-top:5px;
-  padding:5px;
+  margin-top:8px;
+  padding:10px;
   width:100%;
+
+  border:none;
+  border-radius:10px;
+
+  background:linear-gradient(
+    to bottom,
+    #f2f2f2,
+    #cfcfcf
+  );
+
+  color:#000;
+  font-weight:bold;
+
+  box-shadow:
+    0 4px 0 #9a9a9a,
+    0 6px 10px rgba(0,0,0,0.2);
+
+  cursor:pointer;
+
+  transition:all 0.1s ease;
 }
+
+/* knop indruk effect */
+
+button:active{
+  transform:translateY(3px);
+
+  box-shadow:
+    0 1px 0 #9a9a9a,
+    0 2px 5px rgba(0,0,0,0.2);
+}
+
 </style>
 </head>
 
 <body>
 
 <header>
-<h2>Verlofplanner</h2>
-<div class="header-line"></div>
+  <h2>Verlofplanner</h2>
+  <div class="header-line"></div>
 </header>
 
 <div id="summary"></div>
+
 <div class="container" id="app"></div>
 
 <script>
 
+/* CODES */
+
 const codes = {
- EL: {name:'Eindeloopbaan', hours:8},
- R: {name:'Overuren', hours:10.5},
- F: {name:'Feestdag', hours:0},
- C: {name:'Compensatie', hours:5.5},
- S: {name:'Verlof', hours:15},
- B: {name:'Verlof B', hours:120}
+
+  EL: {
+    name:'Eindeloopbaan',
+    hours:8
+  },
+
+  R: {
+    name:'Overuren',
+    hours:10.5
+  },
+
+  F: {
+    name:'Feestdag',
+    hours:0
+  },
+
+  C: {
+    name:'Compensatie',
+    hours:5.5
+  },
+
+  S: {
+    name:'Verlof',
+    hours:15
+  },
+
+  B: {
+    name:'Verlof B',
+    hours:120
+  }
 };
 
 const workDayHours = 8;
 
 /* RFC maand +3 */
+
 function getRFCText(){
 
   const now = new Date();
 
   const currentMonth =
-    now.toLocaleString('nl-NL', { month:'long' });
+    now.toLocaleString('nl-NL', {
+      month:'long'
+    });
 
   const future =
-    new Date(now.getFullYear(), now.getMonth()+3, 1);
+    new Date(
+      now.getFullYear(),
+      now.getMonth()+3,
+      1
+    );
 
   const futureMonth =
-    future.toLocaleString('nl-NL', { month:'long' });
+    future.toLocaleString('nl-NL', {
+      month:'long'
+    });
 
   return `15 ${currentMonth} = ${futureMonth}`;
 }
 
-/* S+B planning volgens vaste tabel */
+/* S+B planning */
+
 function getSBPlanningText(){
 
   const maand = new Date().getMonth();
 
   const planning = {
 
-    0: "15 januari = april, mei, juni, juli, augustus",
+    0:
+    "15 januari = april, mei, juni, juli, augustus",
 
-    5: "15 juni = september",
+    5:
+    "15 juni = september",
 
-    6: "15 juli = oktober",
+    6:
+    "15 juli = oktober",
 
-    7: "15 augustus = november",
+    7:
+    "15 augustus = november",
 
-    8: "15 september = december",
+    8:
+    "15 september = december",
 
-    9: "15 oktober = januari",
+    9:
+    "15 oktober = januari",
 
-    10: "15 november = februari",
+    10:
+    "15 november = februari",
 
-    11: "15 december = maart"
+    11:
+    "15 december = maart"
   };
 
   return planning[maand] || "";
 }
 
+/* maand sleutel */
+
 function getCurrentMonthKey(){
 
   const d = new Date();
 
-  return d.getFullYear() + '-' + (d.getMonth()+1);
+  return d.getFullYear() +
+    '-' +
+    (d.getMonth()+1);
 }
+
+/* laden */
 
 function load(){
 
   const saved =
-    JSON.parse(localStorage.getItem('data'));
+    JSON.parse(
+      localStorage.getItem('data')
+    );
 
-  const monthKey = getCurrentMonthKey();
+  const monthKey =
+    getCurrentMonthKey();
 
-  if(!saved || saved.month !== monthKey){
+  if(
+    !saved ||
+    saved.month !== monthKey
+  ){
 
     const newData = {
+
       month: monthKey,
-      values: JSON.parse(JSON.stringify(codes))
+
+      values:
+      JSON.parse(
+        JSON.stringify(codes)
+      )
     };
 
     newData.values.EL.hours = 8;
@@ -191,12 +301,16 @@ function load(){
   return saved.values;
 }
 
+/* opslaan */
+
 function save(values){
 
-  const monthKey = getCurrentMonthKey();
+  const monthKey =
+    getCurrentMonthKey();
 
   localStorage.setItem(
     'data',
+
     JSON.stringify({
       month: monthKey,
       values
@@ -204,17 +318,24 @@ function save(values){
   );
 }
 
+/* halve dag */
+
 function minusHalfDay(code){
 
   const data = load();
 
   data[code].hours =
-    Math.max(0, data[code].hours - 4);
+    Math.max(
+      0,
+      data[code].hours - 4
+    );
 
   save(data);
 
   render();
 }
+
+/* render */
 
 function render(){
 
@@ -236,13 +357,21 @@ function render(){
     const item = data[code];
 
     const days =
-      (item.hours / workDayHours);
+      item.hours / workDayHours;
 
-    if(['R','F','C'].includes(code))
+    if(
+      ['R','F','C']
+      .includes(code)
+    ){
       totalRFC += days;
+    }
 
-    if(['S','B'].includes(code))
+    if(
+      ['S','B']
+      .includes(code)
+    ){
       totalSB += days;
+    }
 
     const div =
       document.createElement('div');
@@ -250,22 +379,45 @@ function render(){
     div.className='card';
 
     div.innerHTML = `
+
       <h3>${code}</h3>
+
       <p>${item.name}</p>
-      <p>Uren: ${item.hours}</p>
-      <p>Dagen: ${days.toFixed(2)}</p>
+
+      <p>
+        Uren:
+        ${item.hours}
+      </p>
+
+      <p>
+        Dagen:
+        ${days.toFixed(2)}
+      </p>
 
       <input
         type="number"
         value="${item.hours}"
-        onchange="update('${code}', this.value)"
+        onchange="
+          update(
+            '${code}',
+            this.value
+          )
+        "
       >
 
-      <button onclick="minusHalfDay('${code}')">
+      <button
+        onclick="
+          minusHalfDay('${code}')
+        "
+      >
         -1/2 dag
       </button>
 
-      <button onclick="resetCode('${code}')">
+      <button
+        onclick="
+          resetCode('${code}')
+        "
+      >
         Reset
       </button>
     `;
@@ -273,9 +425,11 @@ function render(){
     app.appendChild(div);
   });
 
-  const rfcText = getRFCText();
+  const rfcText =
+    getRFCText();
 
-  const sbText = getSBPlanningText();
+  const sbText =
+    getSBPlanningText();
 
   summary.innerHTML = `
 
@@ -305,6 +459,8 @@ function render(){
   `;
 }
 
+/* aanpassen */
+
 function update(code, value){
 
   const data = load();
@@ -316,6 +472,8 @@ function update(code, value){
 
   render();
 }
+
+/* reset */
 
 function resetCode(code){
 
@@ -330,9 +488,13 @@ function resetCode(code){
 
 render();
 
+/* SERVICE WORKER */
+
 if('serviceWorker' in navigator){
 
-  navigator.serviceWorker.register('sw.js');
+  navigator
+    .serviceWorker
+    .register('sw.js');
 }
 
 </script>
