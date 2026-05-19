@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verlofplanner 5.0</title>
 <link rel="manifest" href="manifest.json">
 
@@ -12,238 +12,594 @@
   --card-bg: #ffffff;
   --primary-yellow: #ffeb3b;
   --text-black: #1a1a1a;
-  --btn-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
-  --btn-pressed: inset 3px 3px 6px #bebebe, inset -3px -3px 6px #ffffff;
+
+  --btn-shadow: 4px 4px 8px #bebebe,
+                 -4px -4px 8px #ffffff;
+
+  --btn-pressed: inset 2px 2px 5px #bebebe,
+                 inset -2px -2px 5px #ffffff;
 }
 
-body { 
-  font-family: 'Segoe UI', Arial, sans-serif; 
-  margin:0; padding:0; 
-  background: var(--bg-color); 
-  color: #333;
-  user-select: none;
+body{
+  font-family:'Segoe UI', Arial, sans-serif;
+  margin:0;
+  padding:0;
+  background:var(--bg-color);
+  color:#333;
 }
 
-header { 
-  background: var(--primary-yellow); 
-  padding:25px; 
-  text-align:center; 
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+/* HEADER */
+header{
+  background:var(--primary-yellow);
+  color:black;
+  padding:20px;
+  text-align:center;
+  position:relative;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+header::after{
+  content:"Hanne";
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  font-size:60px;
+  font-family:'Brush Script MT', cursive;
+  color:#000;
+  opacity:0.05;
+  pointer-events:none;
 }
 
 /* SAMENVATTING */
-.summary-container {
-  background: white;
-  margin: 15px;
-  border-radius: 25px;
-  padding: 25px 15px;
-  box-shadow: var(--btn-shadow);
+.summary-container{
+  background:white;
+  margin:15px;
+  border-radius:20px;
+  padding:20px 10px;
+  box-shadow:var(--btn-shadow);
+  border:1px solid #eee;
 }
 
-.summary-days {
-  font-size: 38px;
-  font-weight: 900;
-  color: var(--text-black);
+.summary-item{
+  text-align:center;
+  padding:10px 0;
+}
+
+.summary-title{
+  font-size:14px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:#666;
+  margin-bottom:5px;
+}
+
+.summary-days{
+  font-size:32px;
+  font-weight:900;
+  color:var(--text-black);
+  display:block;
+}
+
+.summary-small{
+  font-size:12px;
+  color:#888;
+  margin-top:4px;
+  line-height:1.5;
+}
+
+.summary-line{
+  border-top:1px solid #f0f0f0;
+  margin:15px 30px;
 }
 
 /* GRID */
-.container { 
-  display:grid; 
-  grid-template-columns: 1fr 1fr;
-  gap:20px; 
+.container{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
   padding:15px;
+  margin-bottom:30px;
 }
 
-.card { 
-  background: var(--card-bg); 
-  padding:20px 15px; 
-  border-radius:25px; 
-  box-shadow: var(--btn-shadow);
-  text-align: center;
+.card{
+  background:var(--card-bg);
+  padding:15px;
+  border-radius:20px;
+  box-shadow:var(--btn-shadow);
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
 }
 
-.card h3 { margin: 0; font-size: 28px; font-weight: 800; }
-
-/* EXTRA GROTE KNOPPEN */
-button { 
-  padding: 18px 5px; /* Extra hoog voor gsm */
-  width: 100%; 
-  border: none;
-  border-radius: 18px;
-  background: #f0f2f5;
-  font-weight: 800;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: var(--btn-shadow);
-  transition: all 0.1s;
-  margin-bottom: 12px;
-  -webkit-tap-highlight-color: transparent;
+.card h3{
+  margin:0;
+  color:var(--text-black);
+  font-size:24px;
+  font-weight:800;
 }
 
-button:active {
-  box-shadow: var(--btn-pressed);
-  transform: translateY(2px);
+.card p.sub-name{
+  margin:2px 0 10px 0;
+  font-size:11px;
+  color:#888;
+  height:14px;
 }
 
-.btn-reset { color: #cc0000; margin-bottom: 0; font-size: 12px; }
-.btn-minus { color: #0056b3; background: #e3f2fd; }
-.btn-notif { background: #fff; margin: 20px; width: calc(100% - 40px); color: #555; }
-
-input { 
-  width: 70%; 
-  padding: 12px; 
-  border: none; 
-  border-radius: 12px; 
-  background: #f0f2f5;
-  box-shadow: inset 2px 2px 5px #bcbcbc, inset -2px -2px 5px #ffffff;
-  text-align: center;
-  font-size: 18px;
-  margin-bottom: 15px;
+.card .days-count{
+  font-weight:bold;
+  font-size:18px;
+  color:#333;
+  margin-bottom:10px;
 }
+
+input{
+  width:70%;
+  padding:8px;
+  border:none;
+  border-radius:10px;
+  background:#f0f2f5;
+  box-shadow:inset 2px 2px 4px #bcbcbc,
+             inset -2px -2px 4px #ffffff;
+  text-align:center;
+  font-size:16px;
+  margin:0 auto 10px;
+}
+
+/* BUTTONS */
+button{
+  padding:10px 5px;
+  width:100%;
+  border:none;
+  border-radius:12px;
+  background:#f0f2f5;
+  font-weight:bold;
+  font-size:11px;
+  cursor:pointer;
+  box-shadow:var(--btn-shadow);
+  transition:0.1s;
+  color:#444;
+  margin-bottom:8px;
+  -webkit-tap-highlight-color:transparent;
+}
+
+button:active{
+  box-shadow:var(--btn-pressed);
+  transform:scale(0.95);
+}
+
+.btn-reset{
+  color:#cc0000;
+  margin-bottom:0;
+}
+
+.btn-minus{
+  color:#0056b3;
+}
+
+/* EL SPECIALE KNOP */
+.btn-el-used{
+  background:#d90000 !important;
+  color:white !important;
+  box-shadow:var(--btn-pressed) !important;
+}
+
+.btn-disabled{
+  opacity:0.7;
+}
+
 </style>
 </head>
 
 <body>
 
 <header>
-  <h2 style="margin:0;">Verlofplanner</h2>
+  <h2 style="margin:0; font-size:22px;">
+    Verlofplanner
+  </h2>
 </header>
 
 <div class="summary-container" id="summary"></div>
+
 <div class="container" id="app"></div>
 
-<button class="btn-notif" onclick="testNotification()">🔔 Test Pushmelding</button>
-
 <script>
+
+/* =========================
+   SB PLANNING
+========================= */
+
 const sbPlanning = {
-  "januari": ["april", "mei", "juni", "juli", "augustus"],
-  "februari": [], "maart": [], "april": [], "mei": [],
-  "juni": ["september"], "juli": ["oktober"], "augustus": ["november"],
-  "september": ["december"], "oktober": ["januari"],
-  "november": ["februari"], "december": ["maart"]
+  "januari": ["april","mei","juni","juli","augustus"],
+  "februari": [],
+  "maart": [],
+  "april": [],
+  "mei": [],
+  "juni": ["september"],
+  "juli": ["oktober"],
+  "augustus": ["november"],
+  "september": ["december"],
+  "oktober": ["januari"],
+  "november": ["februari"],
+  "december": ["maart"]
 };
 
+/* =========================
+   CODES
+========================= */
+
 const codes = {
- EL: {name:'Eindeloopbaan', hours:8},
- R: {name:'Overuren', hours:10.5},
- F: {name:'Feestdag', hours:0},
- C: {name:'Compensatie', hours:5.5},
- S: {name:'Verlof', hours:15},
- B: {name:'Verlof B', hours:120}
+  EL:{name:'Eindeloopbaan', hours:8},
+  R:{name:'Overuren', hours:10.5},
+  F:{name:'Feestdag', hours:0},
+  C:{name:'Compensatie', hours:5.5},
+  S:{name:'Verlof', hours:15},
+  B:{name:'Verlof B', hours:120}
 };
 
 const workDayHours = 8;
 
-// PUSH MELDINGEN TOESTEMMING
-if ("Notification" in window) {
-  Notification.requestPermission();
-}
+/* =========================
+   MAANDEN
+========================= */
 
-function testNotification() {
-  if (Notification.permission === "granted") {
-    new Notification("Verlofplanner Update", {
-      body: "Vergeet je uren niet te checken voor de 15e!",
-      icon: "https://cdn-icons-png.flaticon.com/512/3652/3652191.png"
-    });
-  } else {
-    alert("Zet meldingen aan in je browserinstellingen.");
+const months = [
+  "januari",
+  "februari",
+  "maart",
+  "april",
+  "mei",
+  "juni",
+  "juli",
+  "augustus",
+  "september",
+  "oktober",
+  "november",
+  "december"
+];
+
+/* =========================
+   DEADLINE LOGICA
+========================= */
+
+function getDeadlineText(){
+
+  const now = new Date();
+
+  let currentMonth = now.getMonth();
+  const currentDay = now.getDate();
+
+  // Vanaf de 16de naar volgende opdracht
+  if(currentDay >= 16){
+    currentMonth += 1;
   }
+
+  const deadlineMonth = months[currentMonth % 12];
+  const targetMonth = months[(currentMonth + 3) % 12];
+
+  return `Deadline: 15 ${deadlineMonth} voor ${targetMonth}`;
 }
 
-function getFutureMonthText(){
+/* =========================
+   SB PLANNING LOGICA
+========================= */
+
+function getSBPlanningText(){
+
   const now = new Date();
-  const currentMonth = now.toLocaleString('nl-NL', { month: 'long' });
-  const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
-  return `Deadline: 15 ${currentMonth} voor ${future.toLocaleString('nl-NL', { month: 'long' })}`;
+
+  let index = now.getMonth();
+
+  for(let i = 0; i < 12; i++){
+
+    const monthName = months[(index + i) % 12];
+
+    const planning = sbPlanning[monthName];
+
+    if(planning && planning.length > 0){
+
+      return `SB gepland voor: ${planning.join(', ')}`;
+    }
+  }
+
+  return 'Geen SB planning gevonden';
 }
 
-function getSBPlanningText() {
-  const now = new Date();
-  const currentMonthName = now.toLocaleString('nl-NL', { month: 'long' }).toLowerCase();
-  const plannedMonths = sbPlanning[currentMonthName];
-  return (plannedMonths && plannedMonths.length > 0) ? `SB gepland: ${plannedMonths.join(', ')}` : `SB: Geen data voor ${currentMonthName}`;
+/* =========================
+   STORAGE
+========================= */
+
+function getCurrentMonthKey(){
+
+  const d = new Date();
+
+  return d.getFullYear() + '-' + (d.getMonth()+1);
+}
+
+function getELButtonMonthKey(){
+
+  const d = new Date();
+
+  return 'EL-BUTTON-' + d.getFullYear() + '-' + (d.getMonth()+1);
 }
 
 function load(){
- const saved = JSON.parse(localStorage.getItem('data'));
- const monthKey = new Date().getFullYear() + '-' + (new Date().getMonth()+1);
- if(!saved || saved.month !== monthKey){
-  const newData = { month: monthKey, values: JSON.parse(JSON.stringify(codes)) };
-  localStorage.setItem('data', JSON.stringify(newData));
-  return newData.values;
- }
- return saved.values;
+
+  const saved = JSON.parse(localStorage.getItem('data'));
+
+  const monthKey = getCurrentMonthKey();
+
+  if(!saved || saved.month !== monthKey){
+
+    const newData = {
+      month: monthKey,
+      values: JSON.parse(JSON.stringify(codes))
+    };
+
+    localStorage.setItem('data', JSON.stringify(newData));
+
+    return newData.values;
+  }
+
+  return saved.values;
 }
 
 function save(values){
- const monthKey = new Date().getFullYear() + '-' + (new Date().getMonth()+1);
- localStorage.setItem('data', JSON.stringify({ month: monthKey, values }));
+
+  const monthKey = getCurrentMonthKey();
+
+  localStorage.setItem(
+    'data',
+    JSON.stringify({
+      month: monthKey,
+      values
+    })
+  );
 }
+
+/* =========================
+   UPDATE
+========================= */
 
 function update(code, value){
- const data = load();
- data[code].hours = parseFloat(value) || 0;
- save(data);
- render();
+
+  const data = load();
+
+  data[code].hours = parseFloat(value) || 0;
+
+  save(data);
+
+  render();
 }
 
+/* =========================
+   EL SPECIALE KNOP
+========================= */
+
+function useELDay(){
+
+  const data = load();
+
+  if(data.EL.hours <= 0){
+    return;
+  }
+
+  data.EL.hours = Math.max(0, data.EL.hours - 8);
+
+  save(data);
+
+  // knop opslaan als gebruikt
+  localStorage.setItem(
+    getELButtonMonthKey(),
+    'used'
+  );
+
+  render();
+}
+
+function isELButtonUsed(){
+
+  return localStorage.getItem(
+    getELButtonMonthKey()
+  ) === 'used';
+}
+
+/* =========================
+   STANDAARD BUTTONS
+========================= */
+
 function minusHalfDay(code){
- const data = load();
- data[code].hours = Math.max(0, data[code].hours - 4);
- save(data);
- render();
+
+  const data = load();
+
+  data[code].hours = Math.max(
+    0,
+    data[code].hours - 4
+  );
+
+  save(data);
+
+  render();
 }
 
 function resetCode(code){
- if(confirm('Zeker weten?')) {
+
   const data = load();
+
   data[code].hours = 0;
+
   save(data);
+
   render();
- }
 }
+
+/* =========================
+   RENDER
+========================= */
 
 function render(){
- const data = load();
- const app = document.getElementById('app');
- const summary = document.getElementById('summary');
- app.innerHTML='';
 
- let totalRFC = 0, totalSB = 0;
+  const data = load();
 
- Object.keys(data).forEach(code=>{
-  const item = data[code];
-  const days = (item.hours / workDayHours);
-  if(['R','F','C'].includes(code)) totalRFC += days;
-  if(['S','B'].includes(code)) totalSB += days;
+  const app = document.getElementById('app');
 
-  const div = document.createElement('div');
-  div.className='card';
-  div.innerHTML = `
-   <h3>${code}</h3>
-   <p style="font-size:10px; color:#888; margin-top:-5px;">${item.name}</p>
-   <div style="font-size:22px; font-weight:bold; margin:10px 0;">${days.toFixed(2)} <small style="font-size:12px;">dgn</small></div>
-   <input type="number" step="0.5" value="${item.hours}" onchange="update('${code}', this.value)">
-   <button class="btn-minus" onclick="minusHalfDay('${code}')">➖ ½ DAG</button>
-   <button class="btn-reset" onclick="resetCode('${code}')">RESET</button>
+  const summary = document.getElementById('summary');
+
+  app.innerHTML='';
+
+  let totalRFC = 0;
+  let totalSB = 0;
+
+  Object.keys(data).forEach(code=>{
+
+    const item = data[code];
+
+    const days = (item.hours / workDayHours);
+
+    if(['R','F','C'].includes(code)){
+      totalRFC += days;
+    }
+
+    if(['S','B'].includes(code)){
+      totalSB += days;
+    }
+
+    const div = document.createElement('div');
+
+    div.className='card';
+
+    let buttonHTML = '';
+
+    /* EL speciale knop */
+    if(code === 'EL'){
+
+      const used = isELButtonUsed();
+
+      buttonHTML = `
+        <button
+          onclick="useELDay()"
+          class="${used ? 'btn-el-used btn-disabled' : 'btn-minus'}"
+        >
+          ${used ? 'EL gebruikt deze maand' : '➖ 1 dag'}
+        </button>
+      `;
+    }
+
+    /* andere codes */
+    else{
+
+      buttonHTML = `
+        <button
+          class="btn-minus"
+          onclick="minusHalfDay('${code}')"
+        >
+          ➖ ½ dag
+        </button>
+      `;
+    }
+
+    div.innerHTML = `
+      <div>
+        <h3>${code}</h3>
+
+        <p class="sub-name">
+          ${item.name}
+        </p>
+
+        <div class="days-count">
+          ${days.toFixed(2)}
+          <span style="font-size:12px; font-weight:normal;">
+            dgn
+          </span>
+        </div>
+      </div>
+
+      <div>
+
+        <input
+          type="number"
+          step="0.5"
+          value="${item.hours}"
+          onchange="update('${code}', this.value)"
+        >
+
+        ${buttonHTML}
+
+        <button
+          class="btn-reset"
+          onclick="resetCode('${code}')"
+        >
+          🔄 Reset
+        </button>
+
+      </div>
+    `;
+
+    app.appendChild(div);
+  });
+
+  /* SAMENVATTING */
+
+  summary.innerHTML = `
+
+    <div class="summary-item">
+
+      <div class="summary-title">
+        Totaal R + F + C
+      </div>
+
+      <div class="summary-days">
+        ${totalRFC.toFixed(2)}
+        <span style="font-size:16px;">
+          DAGEN
+        </span>
+      </div>
+
+      <div class="summary-small">
+        ${getDeadlineText()}
+      </div>
+
+    </div>
+
+    <div class="summary-line"></div>
+
+    <div class="summary-item">
+
+      <div class="summary-title">
+        Totaal S + B
+      </div>
+
+      <div class="summary-days">
+        ${totalSB.toFixed(2)}
+        <span style="font-size:16px;">
+          DAGEN
+        </span>
+      </div>
+
+      <div class="summary-small">
+        ${getSBPlanningText()}
+      </div>
+
+    </div>
   `;
-  app.appendChild(div);
- });
-
- summary.innerHTML = `
-   <div style="text-align:center;">
-     <small style="color:#666;">TOTAAL OVERUREN (R+F+C)</small>
-     <div class="summary-days">${totalRFC.toFixed(2)}</div>
-     <small style="color:#888;">${getFutureMonthText()}</small>
-     <div style="border-top:1px solid #eee; margin:15px 0;"></div>
-     <small style="color:#666;">TOTAAL VERLOF (S+B)</small>
-     <div class="summary-days">${totalSB.toFixed(2)}</div>
-     <small style="color:#888;">${getSBPlanningText()}</small>
-   </div>
- `;
 }
 
+/* =========================
+   START
+========================= */
+
 render();
+
+/* =========================
+   SERVICE WORKER
+========================= */
+
+if('serviceWorker' in navigator){
+
+  navigator.serviceWorker.register('sw.js');
+}
+
 </script>
 
 </body>
