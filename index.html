@@ -364,6 +364,15 @@ function save(values){
 
 function update(code, value){
 
+  // Bevestiging specifiek voor Verlof B (code 'B')
+  if(code === 'B') {
+    const confirmation = confirm("Ben je zeker van het ingeven van de verlof uren?");
+    if(!confirmation) {
+      render(); // Herteken de UI om de oude waarde terug te zetten
+      return;
+    }
+  }
+
   const data = load();
 
   data[code].hours = parseFloat(value) || 0;
@@ -385,7 +394,8 @@ function useELDay(){
     return;
   }
 
-  data.EL.hours = Math.max(0, data.EL.hours - 8);
+  // Nu 4 uur aftrekken per klik in plaats van 8
+  data.EL.hours = Math.max(0, data.EL.hours - 4);
 
   save(data);
 
@@ -411,6 +421,12 @@ function isELButtonUsed(){
 
 function minusHalfDay(code){
 
+  // Bevestiging toevoegen als er via de min-knop van B gereduceerd wordt
+  if(code === 'B') {
+    const confirmation = confirm("Ben je zeker van het ingeven van de verlof uren?");
+    if(!confirmation) return;
+  }
+
   const data = load();
 
   data[code].hours = Math.max(
@@ -425,11 +441,22 @@ function minusHalfDay(code){
 
 function resetCode(code){
 
+  // Bevestiging toevoegen als de reset-knop van B gebruikt wordt
+  if(code === 'B') {
+    const confirmation = confirm("Ben je zeker van het ingeven van de verlof uren?");
+    if(!confirmation) return;
+  }
+
   const data = load();
 
   data[code].hours = 0;
 
   save(data);
+
+  // Als de geresette code EL is, maken we de speciale knop ook weer actief
+  if(code === 'EL') {
+    localStorage.removeItem(getELButtonMonthKey());
+  }
 
   render();
 }
@@ -481,7 +508,7 @@ function render(){
           onclick="useELDay()"
           class="${used ? 'btn-el-used btn-disabled' : 'btn-minus'}"
         >
-          ${used ? 'EL gebruikt deze maand' : '➖ 1 dag'}
+          ${used ? 'EL gebruikt deze maand' : '➖ ½ dag'}
         </button>
       `;
     }
