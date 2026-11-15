@@ -1,108 +1,70 @@
-import json
 import socket
-import threading
+import json
 import time
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 
-# Pas dit aan naar het IP-adres van je batterij.
-BATTERY_IP = "192.168.0.107"
+# Pas dit aan naar het IP-adres van jouw Marstek batterij in je thuisnetwerk
+BATTERY_IP = "192.168.0.107"  # Vervang door jouw batterij IP
 BATTERY_PORT = 30000
 WEB_PORT = 8080
 
-POLL_INTERVAL_SECONDS = 5
-UDP_TIMEOUT_SECONDS = 3
-MAX_RESPONSE_BYTES = 4096
-
-# LET OP: dit is een voorbeeldcommando; controleer welk commando
-# jouw Marstek-model en firmware daadwerkelijk ondersteunen.
-REQUEST_PAYLOAD = json.dumps({"cmd": "get_status"}).encode("utf-8")
-
 latest_data = {"status": "Verbinding zoeken..."}
-data_lock = threading.Lock()
-
-
-def set_latest_data(data):
-    global latest_data
-    with data_lock:
-        latest_data = data
-
-
-def get_latest_data():
-    with data_lock:
-        return latest_data.copy()
-
 
 def fetch_battery_data():
+    global latest_data
     while True:
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-                sock.settimeout(UDP_TIMEOUT_SECONDS)
-                sock.sendto(REQUEST_PAYLOAD, (BATTERY_IP, BATTERY_PORT))
-                response_bytes, address = sock.recvfrom(MAX_RESPONSE_BYTES)
+            # UDP socket aanmaken
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.settimeout(3.0)
+            
+            # Commando om status op te vragen (afhankelijk van firmware, 
+            # vaak volstaat een statusverzoek of JSON-commando naar poort 30000)
+            # Voorbeeldcommando (aan te passen op basis van jouw specifieke firmware):
+            request_payload = json.dumps({"cmd": "get_status"}).encode('utf-8')
+            
+            sock.sendto(request_payload, (BATTERY_IP, BATTERY_PORT))
+            data, addr = sock.recvfrom(1024)
+            
+            # Verwerk de binnenkomende JSON data
+            parsed = json.loads(data.decode('utf-8'))
+            latest_data = parsed
+            sock.close()
+        except Exception as e:
+            # Als de batterij even niet reageert
+            latest_data = {"error": str(e), "status": "Offline / Geen antwoord"}
+        
+        # Elke 5 seconden verversen (pas op dat je de batterij niet overbelast)
+        time.sleep(5)
 
-            response_text = response_bytes.decode("utf-8").strip()
-            parsed_data = json.loads(response_text)
-
-            if not isinstance(parsed_data, dict):
-                raise ValueError("De batterij stuurde JSON terug, maar geen JSON-object.")
-
-            parsed_data.setdefault("status", "Verbonden")
-            set_latest_data(parsed_data)
-            print(f"Antwoord ontvangen van {address[0]}.")
-
-        except socket.timeout:
-            message = (
-                f"Geen antwoord van {BATTERY_IP}:{BATTERY_PORT} "
-                f"binnen {UDP_TIMEOUT_SECONDS} seconden."
-            )
-            set_latest_data({"status": "Offline / Geen antwoord", "error": message})
-            print(message)
-
-        except json.JSONDecodeError as error:
-            message = f"Antwoord van de batterij is geen geldige JSON: {error}"
-            set_latest_data({"status": "Onverwacht antwoord", "error": message})
-            print(message)
-
-        except OSError as error:
-            message = f"Netwerkfout: {error}"
-            set_latest_data({"status": "Netwerkfout", "error": message})
-            print(message)
-
-        except Exception as error:
-            message = f"Fout bij ophalen of verwerken van batterijdata: {error}"
-            set_latest_data({"status": "Fout", "error": message})
-            print(message)
-
-        time.sleep(POLL_INTERVAL_SECONDS)
-
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/data':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(latest_data).encode('utf-8'))
+        else:
+            # Serveer de HTML pagina
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(HTML_PAGE.encode('utf-8'))
 
 HTML_PAGE = """<!DOCTYPE html>
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marstek Live Monitor</title>
+    <title>Marstek Android Monitor</title>
     <style>
-        body {
-            font-family: sans-serif;
-            background: #121212;
-            color: #fff;
-            text-align: center;
-            padding: 20px;
-        }
-        .card {
-            background: #1e1e1e;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 15px auto;
-            max-width: 400px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-        }
+        body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; margin: 15px auto; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         h1 { font-size: 1.5rem; color: #4caf50; }
         .value { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
         .label { color: #aaa; font-size: 0.9rem; }
-        #error { color: #ff8a80; overflow-wrap: anywhere; }
     </style>
 </head>
 <body>
@@ -117,79 +79,35 @@ HTML_PAGE = """<!DOCTYPE html>
     </div>
     <div class="card">
         <div class="label">Status</div>
-        <div id="status">Verbinden...</div>
-        <div id="error"></div>
+        <div id="status" style="font-weight: bold;">Verbinden...</div>
     </div>
 
     <script>
-        async function updateData() {
-            try {
-                const response = await fetch('/data', { cache: 'no-store' });
-                if (!response.ok) {
-                    throw new Error('HTTP-fout ' + response.status);
-                }
-
-                const data = await response.json();
-
-                document.getElementById('soc').textContent =
-                    data.soc !== undefined ? data.soc + '%' : '--%';
-                document.getElementById('power').textContent =
-                    data.power !== undefined ? data.power + ' W' : '-- W';
-                document.getElementById('status').textContent =
-                    data.status || 'Verbonden';
-                document.getElementById('error').textContent =
-                    data.error || '';
-            } catch (error) {
-                document.getElementById('status').textContent =
-                    'Fout bij ophalen van data';
-                document.getElementById('error').textContent = error.message;
-            }
+        function updateData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('soc').innerText = (data.soc !== undefined ? data.soc + '%' : '--%');
+                    document.getElementById('power').innerText = (data.power !== undefined ? data.power + ' W' : '0 W');
+                    document.getElementById('status').innerText = data.status || 'Verbonden';
+                })
+                .catch(err => {
+                    document.getElementById('status').innerText = 'Fout bij ophalen data';
+                });
         }
-
-        updateData();
         setInterval(updateData, 3000);
+        updateData();
     </script>
 </body>
 </html>
 """
 
-
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        path = urlparse(self.path).path
-
-        if path == "/data":
-            body = json.dumps(get_latest_data()).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-
-        body = HTML_PAGE.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def log_message(self, format_string, *args):
-        # Houd de terminal rustig; verwijder deze methode om HTTP-requests te loggen.
-        return
-
-
-if __name__ == "__main__":
-    threading.Thread(target=fetch_battery_data, daemon=True).start()
-
-    server = ThreadingHTTPServer(("0.0.0.0", WEB_PORT), SimpleHandler)
-    print(f"Marstek-monitor gestart op http://localhost:{WEB_PORT}")
-    print(f"Open op een ander apparaat in je netwerk: http://<IP-van-deze-computer>:{WEB_PORT}")
-
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print("\\nServer wordt afgesloten.")
-    finally:
-        server.server_close()
+if __name__ == '__main__':
+    # Start de achtergrond-thread die de batterij uitleest
+    t = threading.Thread(target=fetch_battery_data, daemon=True)
+    t.start()
+    
+    # Start de webserver
+    server = HTTPServer(('0.0.0.0', WEB_PORT), SimpleHandler)
+    print(f"Marstek Web-App gestart op http://<192.168.0.36>:{WEB_PORT}")
+    server.serve_forever()
