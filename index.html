@@ -1,113 +1,146 @@
-import socket
-import json
-import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
-
-# Pas dit aan naar het IP-adres van jouw Marstek batterij in je thuisnetwerk
-BATTERY_IP = "192.168.0.196"  # Vervang door jouw batterij IP
-BATTERY_PORT = 30000
-WEB_PORT = 8080
-
-latest_data = {"status": "Verbinding zoeken..."}
-
-def fetch_battery_data():
-    global latest_data
-    while True:
-        try:
-            # UDP socket aanmaken
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.settimeout(3.0)
-            
-            # Commando om status op te vragen (afhankelijk van firmware, 
-            # vaak volstaat een statusverzoek of JSON-commando naar poort 30000)
-            # Voorbeeldcommando (aan te passen op basis van jouw specifieke firmware):
-            request_payload = json.dumps({"cmd": "get_status"}).encode('utf-8')
-            
-            sock.sendto(request_payload, (BATTERY_IP, BATTERY_PORT))
-            data, addr = sock.recvfrom(1024)
-            
-            # Verwerk de binnenkomende JSON data
-            parsed = json.loads(data.decode('utf-8'))
-            latest_data = parsed
-            sock.close()
-        except Exception as e:
-            # Als de batterij even niet reageert
-            latest_data = {"error": str(e), "status": "Offline / Geen antwoord"}
-        
-        # Elke 5 seconden verversen (pas op dat je de batterij niet overbelast)
-        time.sleep(5)
-
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == '/data':
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps(latest_data).encode('utf-8'))
-        else:
-            # Serveer de HTML pagina
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(HTML_PAGE.encode('utf-8'))
-
-HTML_PAGE = """<!DOCTYPE html>
-<html lang="nl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marstek Android Monitor</title>
-    <style>
-        body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
-        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; margin: 15px auto; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        h1 { font-size: 1.5rem; color: #4caf50; }
-        .value { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
-        .label { color: #aaa; font-size: 0.9rem; }
-    </style>
-</head>
-<body>
-    <h1>Marstek Live Monitor</h1>
-    <div class="card">
-        <div class="label">Laadstatus (SoC)</div>
-        <div class="value" id="soc">--%</div>
-    </div>
-    <div class="card">
-        <div class="label">Vermogen (Watt)</div>
-        <div class="value" id="power">-- W</div>
-    </div>
-    <div class="card">
-        <div class="label">Status</div>
-        <div id="status" style="font-weight: bold;">Verbinden...</div>
-    </div>
-
-    <script>
-        function updateData() {
-            fetch('/data')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('soc').innerText = (data.soc !== undefined ? data.soc + '%' : '--%');
-                    document.getElementById('power').innerText = (data.power !== undefined ? data.power + ' W' : '0 W');
-                    document.getElementById('status').innerText = data.status || 'Verbonden';
-                })
-                .catch(err => {
-                    document.getElementById('status').innerText = 'Fout bij ophalen data';
-                });
-        }
-        setInterval(updateData, 3000);
-        updateData();
-    </script>
-</body>
-</html>
+#!/usr/bin/env python3
 """
+Marstek monitor: leest Venus-batterijen via de lokale UDP API (poort 30000)
+en toont een dashboard op http://localhost:8080
 
-if __name__ == '__main__':
-    # Start de achtergrond-thread die de batterij uitleest
-    t = threading.Thread(target=fetch_battery_data, daemon=True)
-    t.start()
-    
-    # Start de webserver
-    server = HTTPServer(('0.0.0.0', WEB_PORT), SimpleHandler)
-    print(f"Marstek Web-App gestart op http://<192.168.0.36>:{WEB_PORT}")
-    server.serve_forever()
+Starten:  python marstek_monitor.py
+Alleen standaardbibliotheek nodig (Python 3.8+).
+"""
+import json
+import socket
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+BATTERIES = [
+    {"name": "Venus 3.0", "ip": "192.168.0.107", "enabled": True},
+    # Zet op True zodra de 3.0 stabiel werkt en de CT003-koppeling intact blijft:
+    {"name": "Venus 2.0", "ip": "192.168.0.196", "enabled": False},
+]
+
+POLL_SECONDS = 30          # rustig pollen, om de CT003-koppeling niet te storen
+TIMEOUT = 3                # seconden wachten op antwoord
+WEB_PORT = 8080
+API_PORT = 30000
+POSITIVE_IS_CHARGING = True  # klopt het niet? Zet op False (zie dashboard bij een laadende batterij)
+IDLE_WATT = 15             # onder deze waarde tonen we "Rust"
+
+status = {
+    b["ip"]: {"name": b["name"], "ip": b["ip"], "enabled": b["enabled"],
+              "online": None, "soc": None, "watt": None, "state": None, "seen": None}
+    for b in BATTERIES
+}
+lock = threading.Lock()
+
+
+def query(sock, ip, method):
+    msg = json.dumps({"id": 1, "method": method, "params": {"id": 0}}).encode()
+    sock.sendto(msg, (ip, API_PORT))
+    end = time.time() + TIMEOUT
+    while time.time() < end:
+        sock.settimeout(max(0.1, end - time.time()))
+        try:
+            data, addr = sock.recvfrom(4096)
+        except socket.timeout:
+            return None
+        if addr[0] == ip:
+            try:
+                return json.loads(data).get("result")
+            except ValueError:
+                return None
+    return None
+
+
+def poll_loop():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        sock.bind(("", API_PORT))
+    except OSError:
+        sock.bind(("", 0))
+    while True:
+        for b in BATTERIES:
+            if not b["enabled"]:
+                continue
+            result = query(sock, b["ip"], "ES.GetStatus")
+            with lock:
+                s = status[b["ip"]]
+                if result is None:
+                    s["online"] = False
+                else:
+                    p = result.get("bat_power")
+                    s["online"] = True
+                    s["soc"] = result.get("bat_soc")
+                    s["seen"] = time.strftime("%H:%M:%S")
+                    if p is not None:
+                        signed = p if POSITIVE_IS_CHARGING else -p
+                        s["watt"] = abs(p)
+                        s["state"] = ("charging" if signed > IDLE_WATT
+                                      else "discharging" if signed < -IDLE_WATT
+                                      else "idle")
+            time.sleep(2)
+        time.sleep(POLL_SECONDS)
+
+
+PAGE = """<!doctype html>
+<html lang="nl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Marstek monitor</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--text:#1b1f24;--muted:#6b7280;--ok:#16a34a;--bad:#dc2626;--chg:#2563eb;--dis:#ea580c;--track:#e5e7eb}
+@media(prefers-color-scheme:dark){:root{--bg:#111418;--card:#1b2027;--text:#e8eaed;--muted:#9aa3ae;--track:#2c333c}}
+body{margin:0;padding:24px;background:var(--bg);color:var(--text);font:16px system-ui,sans-serif}
+h1{font-size:20px;margin:0 0 16px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));max-width:760px}
+.card{background:var(--card);border-radius:12px;padding:20px}
+.row{display:flex;justify-content:space-between;align-items:center}
+.badge{font-size:13px;padding:2px 10px;border-radius:99px;color:#fff}
+.big{font-size:40px;font-weight:600;margin:12px 0 4px}
+.bar{height:12px;border-radius:6px;background:var(--track);overflow:hidden}
+.bar>div{height:100%;background:var(--ok)}
+.muted{color:var(--muted);font-size:13px;margin-top:10px}
+</style></head><body>
+<h1>Marstek batterijen</h1><div class="grid" id="g"></div>
+<script>
+const L={charging:["Laden","var(--chg)"],discharging:["Ontladen","var(--dis)"],idle:["Rust","var(--muted)"]};
+async function load(){
+  try{
+    const d=await (await fetch('/api/status')).json();
+    document.getElementById('g').innerHTML=d.map(b=>{
+      if(!b.enabled)return `<div class="card"><div class="row"><b>${b.name}</b><span class="badge" style="background:var(--muted)">Uitgeschakeld</span></div><div class="muted">${b.ip}</div></div>`;
+      const on=b.online, st=L[b.state]||["-","var(--muted)"];
+      return `<div class="card"><div class="row"><b>${b.name}</b>
+        <span class="badge" style="background:${on?'var(--ok)':on===false?'var(--bad)':'var(--muted)'}">${on?'Online':on===false?'Offline':'Wachten...'}</span></div>
+        <div class="big">${b.soc==null?'-':b.soc+' %'}</div>
+        <div class="bar"><div style="width:${b.soc||0}%"></div></div>
+        <div class="row" style="margin-top:14px"><b style="color:${st[1]}">${st[0]}</b><b>${b.watt==null?'-':b.watt+' W'}</b></div>
+        <div class="muted">${b.ip} · laatst gezien ${b.seen||'-'}</div></div>`;
+    }).join('');
+  }catch(e){}
+}
+load();setInterval(load,5000);
+</script></body></html>"""
+
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/api/status":
+            with lock:
+                body = json.dumps(list(status.values())).encode()
+            ctype = "application/json"
+        else:
+            body, ctype = PAGE.encode(), "text/html; charset=utf-8"
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass
+
+
+if __name__ == "__main__":
+    threading.Thread(target=poll_loop, daemon=True).start()
+    print(f"Dashboard: http://localhost:{WEB_PORT}  (stoppen met Ctrl+C)")
+    ThreadingHTTPServer(("", WEB_PORT), Handler).serve_forever()
