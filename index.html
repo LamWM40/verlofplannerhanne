@@ -1,633 +1,113 @@
-<!DOCTYPE html>
+import socket
+import json
+import time
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
+
+# Pas dit aan naar het IP-adres van jouw Marstek batterij in je thuisnetwerk
+BATTERY_IP = "192.168.0.107"  # Vervang door jouw batterij IP
+BATTERY_PORT = 30000
+WEB_PORT = 8080
+
+latest_data = {"status": "Verbinding zoeken..."}
+
+def fetch_battery_data():
+    global latest_data
+    while True:
+        try:
+            # UDP socket aanmaken
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.settimeout(3.0)
+            
+            # Commando om status op te vragen (afhankelijk van firmware, 
+            # vaak volstaat een statusverzoek of JSON-commando naar poort 30000)
+            # Voorbeeldcommando (aan te passen op basis van jouw specifieke firmware):
+            request_payload = json.dumps({"cmd": "get_status"}).encode('utf-8')
+            
+            sock.sendto(request_payload, (BATTERY_IP, BATTERY_PORT))
+            data, addr = sock.recvfrom(1024)
+            
+            # Verwerk de binnenkomende JSON data
+            parsed = json.loads(data.decode('utf-8'))
+            latest_data = parsed
+            sock.close()
+        except Exception as e:
+            # Als de batterij even niet reageert
+            latest_data = {"error": str(e), "status": "Offline / Geen antwoord"}
+        
+        # Elke 5 seconden verversen (pas op dat je de batterij niet overbelast)
+        time.sleep(5)
+
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/data':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(latest_data).encode('utf-8'))
+        else:
+            # Serveer de HTML pagina
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(HTML_PAGE.encode('utf-8'))
+
+HTML_PAGE = """<!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verlofplanner 5.0</title>
-<link rel="manifest" href="manifest.json">
-
-<style>
-:root {
-  --bg-color: #f0f2f5;
-  --card-bg: #ffffff;
-  --primary-yellow: #ffeb3b;
-  --text-black: #1a1a1a;
-
-  --btn-shadow: 4px 4px 8px #bebebe,
-                 -4px -4px 8px #ffffff;
-
-  --btn-pressed: inset 2px 2px 5px #bebebe,
-                 inset -2px -2px 5px #ffffff;
-}
-
-body{
-  font-family:'Segoe UI', Arial, sans-serif;
-  margin:0;
-  padding:0;
-  background:var(--bg-color);
-  color:#333;
-}
-
-/* HEADER */
-header{
-  background:var(--primary-yellow);
-  color:black;
-  padding:20px;
-  text-align:center;
-  position:relative;
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
-}
-
-header::after{
-  content:"Hanne";
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  font-size:60px;
-  font-family:'Brush Script MT', cursive;
-  color:#000;
-  opacity:0.05;
-  pointer-events:none;
-}
-
-/* SAMENVATTING */
-.summary-container{
-  background:white;
-  margin:15px;
-  border-radius:20px;
-  padding:20px 10px;
-  box-shadow:var(--btn-shadow);
-  border:1px solid #eee;
-}
-
-.summary-item{
-  text-align:center;
-  padding:10px 0;
-}
-
-.summary-title{
-  font-size:14px;
-  text-transform:uppercase;
-  letter-spacing:1px;
-  color:#666;
-  margin-bottom:5px;
-}
-
-.summary-days{
-  font-size:32px;
-  font-weight:900;
-  color:var(--text-black);
-  display:block;
-}
-
-.summary-small{
-  font-size:12px;
-  color:#888;
-  margin-top:4px;
-  line-height:1.5;
-}
-
-.summary-line{
-  border-top:1px solid #f0f0f0;
-  margin:15px 30px;
-}
-
-/* GRID */
-.container{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:15px;
-  padding:15px;
-  margin-bottom:30px;
-}
-
-.card{
-  background:var(--card-bg);
-  padding:15px;
-  border-radius:20px;
-  box-shadow:var(--btn-shadow);
-  text-align:center;
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-}
-
-.card h3{
-  margin:0;
-  color:var(--text-black);
-  font-size:24px;
-  font-weight:800;
-}
-
-.card p.sub-name{
-  margin:2px 0 10px 0;
-  font-size:11px;
-  color:#888;
-  height:14px;
-}
-
-.card .days-count{
-  font-weight:bold;
-  font-size:18px;
-  color:#333;
-  margin-bottom:10px;
-}
-
-input{
-  width:70%;
-  padding:8px;
-  border:none;
-  border-radius:10px;
-  background:#f0f2f5;
-  box-shadow:inset 2px 2px 4px #bcbcbc,
-             inset -2px -2px 4px #ffffff;
-  text-align:center;
-  font-size:16px;
-  margin:0 auto 10px;
-}
-
-/* BUTTONS */
-button{
-  padding:10px 5px;
-  width:100%;
-  border:none;
-  border-radius:12px;
-  background:#f0f2f5;
-  font-weight:bold;
-  font-size:11px;
-  cursor:pointer;
-  box-shadow:var(--btn-shadow);
-  transition:0.1s;
-  color:#444;
-  margin-bottom:8px;
-  -webkit-tap-highlight-color:transparent;
-}
-
-button:active{
-  box-shadow:var(--btn-pressed);
-  transform:scale(0.95);
-}
-
-.btn-reset{
-  color:#cc0000;
-  margin-bottom:0;
-}
-
-.btn-minus{
-  color:#0056b3;
-}
-
-/* EL SPECIALE KNOP */
-.btn-el-used{
-  background:#d90000 !important;
-  color:white !important;
-  box-shadow:var(--btn-pressed) !important;
-}
-
-.btn-disabled{
-  opacity:0.7;
-}
-
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marstek Android Monitor</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; margin: 15px auto; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        h1 { font-size: 1.5rem; color: #4caf50; }
+        .value { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
+        .label { color: #aaa; font-size: 0.9rem; }
+    </style>
 </head>
-
 <body>
-
-<header>
-  <h2 style="margin:0; font-size:22px;">
-    Verlofplanner
-  </h2>
-</header>
-
-<div class="summary-container" id="summary"></div>
-
-<div class="container" id="app"></div>
-
-<script>
-
-/* =========================
-   SB PLANNING
-========================= */
-
-const sbPlanning = {
-  "januari": ["april","mei","juni","juli","augustus"],
-  "februari": [],
-  "maart": [],
-  "april": [],
-  "mei": [],
-  "juni": ["september"],
-  "juli": ["oktober"],
-  "augustus": ["november"],
-  "september": ["december"],
-  "oktober": ["januari"],
-  "november": ["februari"],
-  "december": ["maart"]
-};
-
-/* =========================
-   CODES
-========================= */
-
-const codes = {
-  EL:{name:'Eindeloopbaan', hours:8},
-  R:{name:'Overuren', hours:10.5},
-  F:{name:'Feestdag', hours:0},
-  C:{name:'Compensatie', hours:5.5},
-  S:{name:'Verlof', hours:15},
-  B:{name:'Verlof B', hours:120}
-};
-
-const workDayHours = 8;
-
-/* =========================
-   MAANDEN
-========================= */
-
-const months = [
-  "januari",
-  "februari",
-  "maart",
-  "april",
-  "mei",
-  "juni",
-  "juli",
-  "augustus",
-  "september",
-  "oktober",
-  "november",
-  "december"
-];
-
-/* =========================
-   DEADLINE LOGICA
-========================= */
-
-function getDeadlineText(){
-
-  const now = new Date();
-
-  let currentMonth = now.getMonth();
-  const currentDay = now.getDate();
-
-  // Vanaf de 16de naar volgende opdracht
-  if(currentDay >= 16){
-    currentMonth += 1;
-  }
-
-  const deadlineMonth = months[currentMonth % 12];
-  const targetMonth = months[(currentMonth + 3) % 12];
-
-  return `Deadline: 15 ${deadlineMonth} voor ${targetMonth}`;
-}
-
-/* =========================
-   SB PLANNING LOGICA
-========================= */
-
-function getSBPlanningText(){
-
-  const now = new Date();
-
-  let index = now.getMonth();
-
-  for(let i = 0; i < 12; i++){
-
-    const monthName = months[(index + i) % 12];
-
-    const planning = sbPlanning[monthName];
-
-    if(planning && planning.length > 0){
-
-      return `SB gepland voor: ${planning.join(', ')}`;
-    }
-  }
-
-  return 'Geen SB planning gevonden';
-}
-
-/* =========================
-   STORAGE
-========================= */
-
-function getCurrentMonthKey(){
-
-  const d = new Date();
-
-  return d.getFullYear() + '-' + (d.getMonth()+1);
-}
-
-function getELButtonMonthKey(){
-
-  const d = new Date();
-
-  return 'EL-BUTTON-' + d.getFullYear() + '-' + (d.getMonth()+1);
-}
-
-function load(){
-
-  const saved = JSON.parse(localStorage.getItem('data'));
-
-  const monthKey = getCurrentMonthKey();
-
-  if(!saved || saved.month !== monthKey){
-
-    const newData = {
-      month: monthKey,
-      values: JSON.parse(JSON.stringify(codes))
-    };
-
-    localStorage.setItem('data', JSON.stringify(newData));
-
-    return newData.values;
-  }
-
-  return saved.values;
-}
-
-function save(values){
-
-  const monthKey = getCurrentMonthKey();
-
-  localStorage.setItem(
-    'data',
-    JSON.stringify({
-      month: monthKey,
-      values
-    })
-  );
-}
-
-/* =========================
-   UPDATE
-========================= */
-
-function update(code, value){
-
-  // Bevestiging specifiek voor Verlof B (code 'B')
-  if(code === 'B') {
-    const confirmation = confirm("Ben je zeker van het ingeven van de verlof uren?");
-    if(!confirmation) {
-      render(); // Herteken de UI om de oude waarde terug te zetten
-      return;
-    }
-  }
-
-  const data = load();
-
-  data[code].hours = parseFloat(value) || 0;
-
-  save(data);
-
-  render();
-}
-
-/* =========================
-   EL SPECIALE KNOP
-========================= */
-
-function useELDay(){
-
-  const data = load();
-
-  if(data.EL.hours <= 0){
-    return;
-  }
-
-  // Nu 4 uur aftrekken per klik in plaats van 8
-  data.EL.hours = Math.max(0, data.EL.hours - 4);
-
-  save(data);
-
-  // knop opslaan als gebruikt
-  localStorage.setItem(
-    getELButtonMonthKey(),
-    'used'
-  );
-
-  render();
-}
-
-function isELButtonUsed(){
-
-  return localStorage.getItem(
-    getELButtonMonthKey()
-  ) === 'used';
-}
-
-/* =========================
-   STANDAARD BUTTONS
-========================= */
-
-function minusHalfDay(code){
-
-  // Bevestiging toevoegen als er via de min-knop van B gereduceerd wordt
-  if(code === 'B') {
-    const confirmation = confirm("Ben je zeker van het ingeven van de verlof uren?");
-    if(!confirmation) return;
-  }
-
-  const data = load();
-
-  data[code].hours = Math.max(
-    0,
-    data[code].hours - 4
-  );
-
-  save(data);
-
-  render();
-}
-
-function resetCode(code){
-
-  // Bevestiging toevoegen als de reset-knop van B gebruikt wordt
-  if(code === 'B') {
-    const confirmation = confirm("Ben je zeker van het ingeven van de verlof uren?");
-    if(!confirmation) return;
-  }
-
-  const data = load();
-
-  data[code].hours = 0;
-
-  save(data);
-
-  // Als de geresette code EL is, maken we de speciale knop ook weer actief
-  if(code === 'EL') {
-    localStorage.removeItem(getELButtonMonthKey());
-  }
-
-  render();
-}
-
-/* =========================
-   RENDER
-========================= */
-
-function render(){
-
-  const data = load();
-
-  const app = document.getElementById('app');
-
-  const summary = document.getElementById('summary');
-
-  app.innerHTML='';
-
-  let totalRFC = 0;
-  let totalSB = 0;
-
-  Object.keys(data).forEach(code=>{
-
-    const item = data[code];
-
-    const days = (item.hours / workDayHours);
-
-    if(['R','F','C'].includes(code)){
-      totalRFC += days;
-    }
-
-    if(['S','B'].includes(code)){
-      totalSB += days;
-    }
-
-    const div = document.createElement('div');
-
-    div.className='card';
-
-    let buttonHTML = '';
-
-    /* EL speciale knop */
-    if(code === 'EL'){
-
-      const used = isELButtonUsed();
-
-      buttonHTML = `
-        <button
-          onclick="useELDay()"
-          class="${used ? 'btn-el-used btn-disabled' : 'btn-minus'}"
-        >
-          ${used ? 'EL gebruikt deze maand' : '➖ ½ dag'}
-        </button>
-      `;
-    }
-
-    /* andere codes */
-    else{
-
-      buttonHTML = `
-        <button
-          class="btn-minus"
-          onclick="minusHalfDay('${code}')"
-        >
-          ➖ ½ dag
-        </button>
-      `;
-    }
-
-    div.innerHTML = `
-      <div>
-        <h3>${code}</h3>
-
-        <p class="sub-name">
-          ${item.name}
-        </p>
-
-        <div class="days-count">
-          ${days.toFixed(2)}
-          <span style="font-size:12px; font-weight:normal;">
-            dgn
-          </span>
-        </div>
-      </div>
-
-      <div>
-
-        <input
-          type="number"
-          step="0.5"
-          value="${item.hours}"
-          onchange="update('${code}', this.value)"
-        >
-
-        ${buttonHTML}
-
-        <button
-          class="btn-reset"
-          onclick="resetCode('${code}')"
-        >
-          🔄 Reset
-        </button>
-
-      </div>
-    `;
-
-    app.appendChild(div);
-  });
-
-  /* SAMENVATTING */
-
-  summary.innerHTML = `
-
-    <div class="summary-item">
-
-      <div class="summary-title">
-        Totaal R + F + C
-      </div>
-
-      <div class="summary-days">
-        ${totalRFC.toFixed(2)}
-        <span style="font-size:16px;">
-          DAGEN
-        </span>
-      </div>
-
-      <div class="summary-small">
-        ${getDeadlineText()}
-      </div>
-
+    <h1>Marstek Live Monitor</h1>
+    <div class="card">
+        <div class="label">Laadstatus (SoC)</div>
+        <div class="value" id="soc">--%</div>
+    </div>
+    <div class="card">
+        <div class="label">Vermogen (Watt)</div>
+        <div class="value" id="power">-- W</div>
+    </div>
+    <div class="card">
+        <div class="label">Status</div>
+        <div id="status" style="font-weight: bold;">Verbinden...</div>
     </div>
 
-    <div class="summary-line"></div>
-
-    <div class="summary-item">
-
-      <div class="summary-title">
-        Totaal S + B
-      </div>
-
-      <div class="summary-days">
-        ${totalSB.toFixed(2)}
-        <span style="font-size:16px;">
-          DAGEN
-        </span>
-      </div>
-
-      <div class="summary-small">
-        ${getSBPlanningText()}
-      </div>
-
-    </div>
-  `;
-}
-
-/* =========================
-   START
-========================= */
-
-render();
-
-/* =========================
-   SERVICE WORKER
-========================= */
-
-if('serviceWorker' in navigator){
-
-  navigator.serviceWorker.register('sw.js');
-}
-
-</script>
-
+    <script>
+        function updateData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('soc').innerText = (data.soc !== undefined ? data.soc + '%' : '--%');
+                    document.getElementById('power').innerText = (data.power !== undefined ? data.power + ' W' : '0 W');
+                    document.getElementById('status').innerText = data.status || 'Verbonden';
+                })
+                .catch(err => {
+                    document.getElementById('status').innerText = 'Fout bij ophalen data';
+                });
+        }
+        setInterval(updateData, 3000);
+        updateData();
+    </script>
 </body>
 </html>
+"""
+
+if __name__ == '__main__':
+    # Start de achtergrond-thread die de batterij uitleest
+    t = threading.Thread(target=fetch_battery_data, daemon=True)
+    t.start()
+    
+    # Start de webserver
+    server = HTTPServer(('0.0.0.0', WEB_PORT), SimpleHandler)
+    print(f"Marstek Web-App gestart op http://<192.168.0.36>:{WEB_PORT}")
+    server.serve_forever()
